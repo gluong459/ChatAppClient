@@ -1,7 +1,7 @@
 ﻿<Window x:Class="ChatAppClient.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Đăng nhập" Height="450" Width="400" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        Title="Đăng nhập" Height="400" Width="400" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Grid Margin="20">
         <StackPanel VerticalAlignment="Center">
             <TextBlock Text="ĐĂNG NHẬP" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,30"/>
@@ -13,20 +13,14 @@
             <PasswordBox x:Name="txtPassword" Height="30" Padding="5"/>
 
             <Button x:Name="btnLogin" Content="Đăng nhập" Height="40" Margin="0,30,0,10" 
-        Background="#007ACC" Foreground="White" FontSize="16" FontWeight="Bold"
-        Click="btnLogin_Click" 
-        IsDefault="True"/>
+                    Background="#007ACC" Foreground="White" FontSize="16" FontWeight="Bold"
+                    Click="btnLogin_Click" IsDefault="True"/>
+
+            <TextBlock x:Name="lblStatus" Text="" Foreground="Red" HorizontalAlignment="Center"/>
 
             <TextBlock Text="Chưa có tài khoản? Đăng ký ngay" 
-                       HorizontalAlignment="Center" Cursor="Hand" Foreground="#555"
+                       HorizontalAlignment="Center" Cursor="Hand" Foreground="#555" Margin="0,10,0,0"
                        MouseLeftButtonDown="LinkRegister_Click"/>
-            <TextBlock Text="IP Server:" Margin="0,10,0,5"/>
-            <TextBox x:Name="txtIpServer" 
-         Text="10.238.133.210" 
-         Foreground="Gray"
-         Height="30" Padding="5"
-         GotFocus="RemovePlaceholder"
-         LostFocus="AddPlaceholder"/>
         </StackPanel>
     </Grid>
 </Window>

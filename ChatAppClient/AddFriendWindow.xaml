@@ -1,0 +1,65 @@
+﻿<Window x:Class="ChatAppClient.AddFriendWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thêm bạn bè" Height="450" Width="400" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Tìm kiếm bạn mới" Grid.Row="0" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="60"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="txtSearchUser" Height="30" Padding="5" VerticalContentAlignment="Center"/>
+                <Button Content="Tìm" Grid.Column="1" Margin="5,0,0,0" Click="btnSearch_Click"/>
+            </Grid>
+        </GroupBox>
+
+        <Border Grid.Row="1" Margin="0,10,0,0" BorderBrush="#DDD" BorderThickness="1" CornerRadius="5" Padding="10" 
+                x:Name="pnlResult" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="lblResultName" Text="Nguyen Van A" FontWeight="Bold" FontSize="14"/>
+                    <TextBlock x:Name="lblResultStatus" Text="Chưa kết bạn" Foreground="Gray" FontSize="12"/>
+                </StackPanel>
+
+                <Button x:Name="btnAction" Content="Thêm" Grid.Column="1" Width="80" Height="30" 
+                        Background="#007ACC" Foreground="White" Click="btnAction_Click"/>
+            </Grid>
+        </Border>
+
+        <TextBlock Text="Lời mời kết bạn" Grid.Row="3" FontWeight="Bold" Margin="0,0,0,5"/>
+
+        <ListBox x:Name="lstRequests" Grid.Row="4" BorderBrush="#DDD">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Width="330">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold"/>
+
+                        <Button Content="Đồng ý" Grid.Column="1" Margin="5,0" Padding="10,2" 
+                                Background="LightGreen" Tag="{Binding Id}" Click="btnAccept_Click"/>
+
+                        <Button Content="Từ chối" Grid.Column="2" Padding="10,2" 
+                                Background="#FFDDDD" Tag="{Binding Id}" Click="btnDecline_Click"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</Window>
