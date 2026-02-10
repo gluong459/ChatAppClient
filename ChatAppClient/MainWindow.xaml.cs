@@ -86,7 +86,7 @@ namespace ChatAppClient
             this.DisplayName = displayName;
             this.client = existingClient;
 
-            // --- SỬA LỖI 1: HIỂN THỊ TÊN NGƯỜI DÙNG ---
+            //1: HIỂN THỊ TÊN NGƯỜI DÙNG
             lblWelcome.Text = DisplayName;
 
             // Khởi tạo các danh sách
