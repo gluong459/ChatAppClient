@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <None Update="tinnhan.wav">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

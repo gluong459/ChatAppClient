@@ -32,6 +32,7 @@ namespace ChatAppClient
 
         // Màu sắc: Online = LimeGreen (Xanh lá), Offline = LightGray (Xám nhạt)
         public string StatusColor => IsOnline ? "LimeGreen" : "LightGray";
+
         private bool _hasNewMessage;
         public bool HasNewMessage
         {
@@ -68,13 +69,18 @@ namespace ChatAppClient
         private StreamReader reader;
         private StreamWriter writer;
 
+        // --- KHAI BÁO BIẾN ÂM THANH TOÀN CỤC ---
+        private System.Media.SoundPlayer _soundPlayer;
+
         // Danh sách dữ liệu hiển thị lên màn hình
         public ObservableCollection<ChatItem> Friends { get; set; }
         public ObservableCollection<ChatItem> Groups { get; set; }
-        public ObservableCollection<MessageModel> Messages { get; set; } // <--- Dùng List mới
+        public ObservableCollection<MessageModel> Messages { get; set; }
 
         private ChatItem currentTarget = null;
         private AddFriendWindow _addFriendWin;
+        private System.Collections.Generic.List<ChatItem> _allFriends = new System.Collections.Generic.List<ChatItem>();
+        private System.Collections.Generic.List<ChatItem> _allGroups = new System.Collections.Generic.List<ChatItem>();
 
         // Constructor nhận thêm MyUserId để biết "Tôi là ai"
         public MainWindow(string userName, string displayName, TcpClient existingClient)
@@ -86,7 +92,7 @@ namespace ChatAppClient
             this.DisplayName = displayName;
             this.client = existingClient;
 
-            //1: HIỂN THỊ TÊN NGƯỜI DÙNG
+            // 1: HIỂN THỊ TÊN NGƯỜI DÙNG
             lblWelcome.Text = DisplayName;
 
             // Khởi tạo các danh sách
@@ -96,7 +102,7 @@ namespace ChatAppClient
 
             lstFriends.ItemsSource = Friends;
             lstGroups.ItemsSource = Groups;
-            listMessages.ItemsSource = Messages; // Binding vào giao diện mới
+            listMessages.ItemsSource = Messages;
 
             var stream = client.GetStream();
             reader = new StreamReader(stream);
@@ -109,6 +115,18 @@ namespace ChatAppClient
             Thread t = new Thread(ReceiveMessages);
             t.IsBackground = true;
             t.Start();
+
+            // --- NẠP FILE ÂM THANH MỘT LẦN DUY NHẤT TẠI ĐÂY ---
+            try
+            {
+                string path = "tinnhan.wav";
+                if (File.Exists(path))
+                {
+                    _soundPlayer = new System.Media.SoundPlayer(path);
+                    _soundPlayer.Load(); // Nạp sẵn vào RAM
+                }
+            }
+            catch { _soundPlayer = null; }
         }
 
         public void SendToServer(string msg)
@@ -156,6 +174,8 @@ namespace ChatAppClient
                             // Sắp xếp: Online lên đầu, sau đó đến Tên
                             var sortedFriends = System.Linq.Enumerable.OrderByDescending(tempFriends, x => x.IsOnline).ThenBy(x => x.Name);
                             foreach (var f in sortedFriends) Friends.Add(f);
+                            _allFriends = new System.Collections.Generic.List<ChatItem>(Friends);
+                            _allGroups = new System.Collections.Generic.List<ChatItem>(Groups);
                         }
                         // 2. CẬP NHẬT TRẠNG THÁI ONLINE/OFFLINE
                         else if (command == "FRIEND_STATUS")
@@ -188,27 +208,35 @@ namespace ChatAppClient
                             string senderName = parts[2];
                             string content = parts[3];
 
-                            // TRƯỜNG HỢP A: Đang mở cửa sổ chat với đúng người gửi
+                            // --- SỬA: Phát âm thanh ngay lập tức (dù đang chat hay không) ---
+                            if (_soundPlayer != null)
+                            {
+                                _soundPlayer.Play();
+                            }
+                            else
+                            {
+                                System.Media.SystemSounds.Beep.Play();
+                            }
+
+                            // TRƯỜNG HỢP A: Đang chat với người đó -> Hiện tin nhắn
                             if (currentTarget != null && currentTarget.Type == "F" && currentTarget.Id == fromId)
                             {
                                 Messages.Add(new MessageModel { Content = content, IsMe = false });
                                 ScrollToBottom();
                             }
-                            // TRƯỜNG HỢP B: Đang chat với người khác hoặc đang ẩn -> HIỆN CHẤM XANH DƯƠNG
                             else
                             {
+                                // TRƯỜNG HỢP B: Đang chat người khác -> Bật cờ tin nhắn mới
                                 foreach (var f in Friends)
                                 {
                                     if (f.Id == fromId)
                                     {
-                                        f.HasNewMessage = true; // Bật cờ tin nhắn mới
+                                        f.HasNewMessage = true;
                                         break;
                                     }
                                 }
-                                System.Media.SystemSounds.Beep.Play(); // Phát tiếng bíp
                             }
                         }
-
                         // 4. NHẬN TIN NHẮN NHÓM
                         else if (command == "MSG_GROUP")
                         {
@@ -294,9 +322,10 @@ namespace ChatAppClient
                 lblCurrentChat.Text = $"Chat với: {item.Name}";
                 // Gửi lệnh lấy lịch sử
                 SendToServer($"GET_HISTORY|{item.Id}");
-
             }
-        }        private void btnAddFriend_Click(object sender, RoutedEventArgs e)
+        }
+
+        private void btnAddFriend_Click(object sender, RoutedEventArgs e)
         {
             btnAddFriend.Background = Brushes.White;
             btnAddFriend.Foreground = Brushes.Black;
@@ -304,7 +333,12 @@ namespace ChatAppClient
             if (_addFriendWin == null || !_addFriendWin.IsVisible) { _addFriendWin = new AddFriendWindow(this); _addFriendWin.Show(); }
             else _addFriendWin.Activate();
         }
-        private void btnCreateGroup_Click(object sender, RoutedEventArgs e) { /* ... */ }
+
+        private void btnCreateGroup_Click(object sender, RoutedEventArgs e)
+        {
+            // Nếu bạn có code tạo nhóm thì điền vào đây, tạm thời để trống theo file cũ của bạn
+        }
+
         private void txtMessage_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
@@ -312,6 +346,7 @@ namespace ChatAppClient
                 btnSend_Click(sender, null);
             }
         }
+
         private void btnLogout_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -332,7 +367,6 @@ namespace ChatAppClient
             }
             catch (Exception ex)
             {
-                // Nếu lỗi (ví dụ chưa tạo file LoginWindow), nó sẽ báo lên
                 MessageBox.Show("Lỗi khi đăng xuất: " + ex.Message);
             }
         }
@@ -343,7 +377,30 @@ namespace ChatAppClient
                 lstFriends.UnselectAll();
                 currentTarget = item;
                 lblCurrentChat.Text = $"Nhóm: {item.Name}";
-                Messages.Clear(); // Nhóm chưa làm lịch sử nên clear tạm
+                Messages.Clear();
+            }
+        }
+        private void txtSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string keyword = txtSearch.Text.ToLower().Trim();
+            // 1. Tìm kiếm BẠN BÈ
+            Friends.Clear(); // Xóa danh sách hiện tại đang hiển thị
+            foreach (var item in _allFriends) // Lọc từ danh sách gốc
+            {
+                // Nếu tên chứa từ khóa (hoặc từ khóa rỗng) thì thêm vào lại
+                if (string.IsNullOrEmpty(keyword) || item.Name.ToLower().Contains(keyword))
+                {
+                    Friends.Add(item);
+                }
+            }
+            // 2. Tìm kiếm NHÓM
+            Groups.Clear();
+            foreach (var item in _allGroups)
+            {
+                if (string.IsNullOrEmpty(keyword) || item.Name.ToLower().Contains(keyword))
+                {
+                    Groups.Add(item);
+                }
             }
         }
     }
