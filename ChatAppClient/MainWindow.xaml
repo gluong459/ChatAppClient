@@ -1,11 +1,11 @@
 ﻿<Window x:Class="ChatAppClient.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Chat App SQL - Final Version" Height="600" Width="950" WindowStartupLocation="CenterScreen">
+        xmlns:emoji="clr-namespace:Emoji.Wpf;assembly=Emoji.Wpf"
+        Title="Chat App SQL - Final Version" Height="650" Width="1100" WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-
         <Style TargetType="ListBoxItem">
             <Setter Property="Template">
                 <Setter.Value>
@@ -31,7 +31,44 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="280"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition x:Name="colInfoPanel" Width="0"/>
         </Grid.ColumnDefinitions>
+
+        <Border x:Name="pnlImagePreview" Grid.ColumnSpan="3" Background="#F2000000" Visibility="Collapsed" Panel.ZIndex="100">
+            <Grid>
+                <Image x:Name="imgFullscreen" Margin="40"/>
+
+                <Grid x:Name="gridFullscreenVideo" Margin="40" Visibility="Collapsed">
+                    <MediaElement x:Name="vidFullscreen" LoadedBehavior="Manual" Stretch="Uniform" MediaEnded="vidFullscreen_MediaEnded" MediaOpened="vidFullscreen_MediaOpened" MouseLeftButtonDown="vidFullscreen_MouseLeftButtonDown"/>
+
+                    <Border VerticalAlignment="Bottom" Background="#CC000000" Padding="20,15" Margin="0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="btnPlayPauseFS" Content="⏸" Grid.Column="0" Background="Transparent" Foreground="White" BorderThickness="0" Width="40" FontSize="24" Cursor="Hand" Click="btnPlayPauseFS_Click"/>
+                            <Slider x:Name="sliderTimelineFS" Grid.Column="1" Margin="20,0" Minimum="0" Maximum="1" VerticalAlignment="Center" IsMoveToPointEnabled="True" PreviewMouseDown="sliderTimelineFS_MouseDown" PreviewMouseUp="sliderTimelineFS_MouseUp" Cursor="Hand"/>
+
+                            <Grid Grid.Column="2" MouseEnter="VolumeFS_MouseEnter" MouseLeave="VolumeFS_MouseLeave" Background="Transparent">
+                                <Button x:Name="btnVolumeFS" Content="🔊" Background="Transparent" Foreground="White" BorderThickness="0" Width="40" FontSize="20" Cursor="Hand" Click="btnVolumeFS_Click"/>
+                                <Popup x:Name="popVolumeFS" PlacementTarget="{Binding ElementName=btnVolumeFS}" Placement="Top" AllowsTransparency="True" StaysOpen="True" MouseLeave="popVolumeFS_MouseLeave">
+                                    <Border Background="#CC000000" Padding="10" CornerRadius="5" Margin="0,0,0,5">
+                                        <Slider x:Name="sliderVolumeFS" Orientation="Vertical" Height="100" Minimum="0" Maximum="1" Value="1" IsMoveToPointEnabled="True" ValueChanged="sliderVolumeFS_ValueChanged" Cursor="Hand"/>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Button Content="✕ Đóng" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="20" Padding="15,8" 
+                        Background="#CCFF0000" Foreground="White" FontWeight="Bold" FontSize="14" BorderThickness="0" 
+                        Cursor="Hand" Click="btnClosePreview_Click"/>
+            </Grid>
+        </Border>
 
         <Border Grid.Column="0" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Background="#F5F5F5">
             <Grid Margin="10">
@@ -44,7 +81,11 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Ellipse Width="40" Height="40" Fill="#007ACC"/>
+                    <Ellipse x:Name="imgMyAvatar" Width="40" Height="40" Cursor="Hand" ToolTip="Bấm để đổi ảnh đại diện">
+                        <Ellipse.Fill>
+                            <SolidColorBrush Color="#007ACC"/>
+                        </Ellipse.Fill>
+                    </Ellipse>
                     <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock x:Name="lblWelcome" Text="User" FontWeight="Bold" FontSize="16"/>
                         <TextBlock Text="Online" Foreground="Green" FontSize="12"/>
@@ -53,14 +94,18 @@
 
                 <StackPanel Grid.Row="1" Margin="0,0,0,15">
                     <TextBlock Text="Tìm kiếm" FontWeight="Bold" Margin="0,0,0,5" Foreground="#666"/>
-                    <TextBox x:Name="txtSearch" Height="30" Padding="5" 
-                        TextChanged="txtSearch_TextChanged"/>
+                    <TextBox x:Name="txtSearch" Height="30" Padding="5" TextChanged="txtSearch_TextChanged"/>
                     <Grid Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Button x:Name="btnAddFriend" Content="Thêm Bạn (+)" Margin="0,0,2,0" Background="#FFF" BorderBrush="#CCC" Height="25" Click="btnAddFriend_Click"/>
+                        <Grid Grid.Column="0" Margin="0,0,2,0">
+                            <Button x:Name="btnAddFriend" Content="Thêm Bạn (+)" Background="#FFF" BorderBrush="#CCC" Height="25" Click="btnAddFriend_Click"/>
+                            <Border x:Name="bdgNewRequest" Width="18" Height="18" Background="#E81123" CornerRadius="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-5,0" BorderBrush="White" BorderThickness="1.5" Visibility="Collapsed">
+                                <TextBlock x:Name="txtRequestCount" Text="1" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                            </Border>
+                        </Grid>
                         <Button Content="Tạo Nhóm" Grid.Column="1" Margin="2,0,0,0" Background="#FFF" BorderBrush="#CCC" Height="25" Click="btnCreateGroup_Click"/>
                     </Grid>
                 </StackPanel>
@@ -71,7 +116,6 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     <TextBlock Text="BẠN BÈ" FontWeight="Bold" Foreground="#888" Margin="0,0,0,5"/>
-
                     <ListBox x:Name="lstFriends" Grid.Row="1" BorderThickness="0" Background="Transparent" SelectionChanged="lstFriends_SelectionChanged">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -81,24 +125,16 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
                                     <Grid Grid.Column="0" Width="40" Height="40" Margin="0,0,10,0">
-                                        <Ellipse Fill="#007ACC" Width="40" Height="40"/>
-                                        <Border Width="12" Height="12" CornerRadius="6" 
-                            BorderThickness="2" BorderBrush="White"
-                            Background="{Binding StatusColor}"
-                            VerticalAlignment="Bottom" HorizontalAlignment="Right"
-                            Margin="-2,-2"/>
+                                        <Ellipse Width="40" Height="40">
+                                            <Ellipse.Fill>
+                                                <ImageBrush ImageSource="{Binding AvatarSource}" Stretch="UniformToFill"/>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
+                                        <Border Width="12" Height="12" CornerRadius="6" BorderThickness="2" BorderBrush="White" Background="{Binding StatusColor}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="-2,-2"/>
                                     </Grid>
-
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" 
-                           FontSize="14" FontWeight="SemiBold" 
-                           VerticalAlignment="Center" 
-                           TextTrimming="CharacterEllipsis"/>
-                                    <Ellipse Grid.Column="2" Width="12" Height="12" Fill="#0084FF" 
-                         VerticalAlignment="Center" 
-                         Margin="10,0,10,0"
-                         Visibility="{Binding HasNewMessage, Converter={StaticResource BoolToVis}}"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Ellipse Grid.Column="2" Width="12" Height="12" Fill="#0084FF" VerticalAlignment="Center" Margin="10,0,10,0" Visibility="{Binding HasNewMessage, Converter={StaticResource BoolToVis}}"/>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -123,7 +159,14 @@
                     </ListBox>
                 </Grid>
 
-                <Button x:Name="btnLogout" Grid.Row="4" Content="Đăng xuất" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Height="30" Click="btnLogout_Click"/>
+                <Grid Grid.Row="4" Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="btnLogout" Content="Đăng xuất" Background="#F0F0F0" Foreground="#333" BorderThickness="0" Height="30" Click="btnLogout_Click" Margin="0,0,2,0"/>
+                    <Button x:Name="btnDeleteAccount" Grid.Column="1" Content="Xóa tài khoản" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Height="30" Click="btnDeleteAccount_Click" Margin="2,0,0,0"/>
+                </Grid>
             </Grid>
         </Border>
 
@@ -135,31 +178,306 @@
             </Grid.RowDefinitions>
 
             <Border BorderBrush="#EEE" BorderThickness="0,0,0,1" Padding="15,0">
-                <TextBlock x:Name="lblCurrentChat" Text="Chọn một cuộc hội thoại..." VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="#333"/>
+                <Grid>
+                    <TextBlock x:Name="lblCurrentChat" Text="Chọn một cuộc hội thoại..." VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="#333"/>
+                    <Button Content="ⓘ" HorizontalAlignment="Right" Width="30" Height="30" Background="Transparent" BorderThickness="0" FontSize="20" FontWeight="Bold" Cursor="Hand" Click="btnToggleInfo_Click"/>
+                </Grid>
             </Border>
 
-            <ListBox x:Name="listMessages" Grid.Row="1" Margin="10" BorderThickness="0" 
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
-                     HorizontalContentAlignment="Stretch">
+            <ListBox x:Name="listMessages" Grid.Row="1" Margin="10" BorderThickness="0" Background="White" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="Transparent">
+                                        <ContentPresenter/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid HorizontalAlignment="{Binding Alignment}" Margin="0,2">
-                            <Border CornerRadius="15" Padding="12,8" Background="{Binding BackgroundColor}" MaxWidth="500">
-                                <TextBlock Text="{Binding Content}" Foreground="{Binding TextColor}" TextWrapping="Wrap" FontSize="14"/>
-                            </Border>
+                        <Grid HorizontalAlignment="{Binding Alignment}" Margin="{Binding MessageMargin}">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <Ellipse Width="28" Height="28" Margin="0,0,8,0" VerticalAlignment="Bottom" Visibility="{Binding AvatarVisibility}">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{Binding AvatarSource}" Stretch="UniformToFill"/>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SenderName}" FontSize="11" Foreground="#999999" Margin="5,0,0,3" Visibility="{Binding SenderNameVisibility}"/>
+
+                                    <Border CornerRadius="{Binding BubbleRadius}" Padding="10" Background="{Binding BackgroundColor}" MaxWidth="450">
+                                        <StackPanel>
+                                            <emoji:TextBlock Text="{Binding Content}" Foreground="{Binding TextColor}" TextWrapping="Wrap" FontSize="15" Visibility="{Binding TextVisibility}"/>
+
+                                            <Grid Visibility="{Binding ImageVisibility}" MaxWidth="300" MaxHeight="300" Margin="0,5">
+                                                <Image Source="{Binding AttachedImage}" Cursor="Hand" MouseLeftButtonDown="ImageMessage_Click" Tag="{Binding AttachedImage}"/>
+                                                <Button Content="⬇" ToolTip="Lưu ảnh về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
+                                                    <Button.Resources>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="CornerRadius" Value="15"/>
+                                                        </Style>
+                                                    </Button.Resources>
+                                                </Button>
+                                            </Grid>
+
+                                            <Border Visibility="{Binding FileVisibility}" Background="#F0F2F5" CornerRadius="8" Padding="10" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📁" FontSize="24" Margin="0,0,10,0"/>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding FileName}" FontWeight="Bold" FontSize="14" Foreground="#333" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                                                        <TextBlock Text="Bấm để tải về máy" FontSize="11" Foreground="#007ACC" TextDecorations="Underline"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Visibility="{Binding VideoVisibility}" Background="Black" CornerRadius="8" MaxWidth="320" Height="200" Margin="0,5" Cursor="Hand" MouseEnter="VideoContainer_MouseEnter" MouseLeave="VideoContainer_MouseLeave" MouseLeftButtonDown="VideoContainer_MouseLeftButtonDown">
+                                                <Grid x:Name="MainVideoGrid">
+                                                    <MediaElement x:Name="videoPlayer" Source="{Binding VideoLocalPathUri}" LoadedBehavior="Manual" Stretch="Uniform" MediaEnded="videoPlayer_MediaEnded" MediaOpened="videoPlayer_MediaOpened"/>
+
+                                                    <Button x:Name="btnCenterPlay" Content="▶" FontSize="40" Background="#99000000" Foreground="White" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center" Width="60" Height="60" Click="btnCenterPlay_Click" Tag="{Binding}">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="30"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Button Content="⬇" ToolTip="Lưu video về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
+                                                        <Button.Resources>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="CornerRadius" Value="15"/>
+                                                            </Style>
+                                                        </Button.Resources>
+                                                    </Button>
+
+                                                    <Border x:Name="pnlVideoControls" VerticalAlignment="Bottom" Background="#B3000000" Padding="5,8" Visibility="Collapsed" MouseLeftButtonDown="pnlVideoControls_MouseLeftButtonDown">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <Button x:Name="btnPlayPause" Content="⏸" Grid.Column="0" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnPlayPause_Click" Tag="{Binding}"/>
+                                                            <Slider x:Name="sliderTimeline" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="1" VerticalAlignment="Center" IsMoveToPointEnabled="True" PreviewMouseDown="sliderTimeline_MouseDown" PreviewMouseUp="sliderTimeline_MouseUp" Cursor="Hand" Tag="{Binding}"/>
+
+                                                            <Grid Grid.Column="2" MouseEnter="Volume_MouseEnter" MouseLeave="Volume_MouseLeave" Background="Transparent">
+                                                                <Button x:Name="btnVolume" Content="🔊" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnVolume_Click" Tag="{Binding}"/>
+                                                                <Popup x:Name="popVolume" PlacementTarget="{Binding ElementName=btnVolume}" Placement="Top" AllowsTransparency="True" StaysOpen="True" MouseLeave="popVolume_MouseLeave">
+                                                                    <Border Background="#CC000000" Padding="5" CornerRadius="5" Margin="0,0,0,5">
+                                                                        <Slider x:Name="sliderVolume" Orientation="Vertical" Height="70" Minimum="0" Maximum="1" Value="1" IsMoveToPointEnabled="True" ValueChanged="sliderVolume_ValueChanged" Cursor="Hand" Tag="{Binding}"/>
+                                                                    </Border>
+                                                                </Popup>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <TextBlock x:Name="txtVideoStatus" Text="{Binding VideoStatusText}" Foreground="White" Background="#88000000" Padding="10,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" Visibility="{Binding VideoStatusVisibility}"/>
+                                                </Grid>
+                                            </Border>
+
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <Grid Grid.Row="2" Margin="10">
+            <Grid Grid.Row="2" Margin="10,0,10,15">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="70"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="txtMessage" Height="40" Padding="10" FontSize="14" VerticalContentAlignment="Center" BorderBrush="#DDD" KeyDown="txtMessage_KeyDown"/>
-                <Button x:Name="btnSend" Content="Gửi" Grid.Column="1" Margin="10,0,0,0" Background="#007ACC" Foreground="White" FontWeight="Bold" BorderThickness="0" Click="btnSend_Click"/>
+
+                <Popup x:Name="popEmoji" PlacementTarget="{Binding ElementName=btnEmoji}" Placement="Top" StaysOpen="False" AllowsTransparency="True" Margin="0,0,0,5">
+                    <Border Background="White" BorderBrush="#CCC" BorderThickness="1" CornerRadius="8" Padding="5">
+                        <UniformGrid Columns="5" Width="220" Height="140">
+                            <Button Tag="😀" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😀" FontSize="24"/>
+                            </Button>
+                            <Button Tag="😂" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😂" FontSize="24"/>
+                            </Button>
+                            <Button Tag="😍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😍" FontSize="24"/>
+                            </Button>
+                            <Button Tag="😭" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😭" FontSize="24"/>
+                            </Button>
+                            <Button Tag="😡" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😡" FontSize="24"/>
+                            </Button>
+                            <Button Tag="👍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="👍" FontSize="24"/>
+                            </Button>
+                            <Button Tag="❤️" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="❤️" FontSize="24"/>
+                            </Button>
+                            <Button Tag="🎉" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="🎉" FontSize="24"/>
+                            </Button>
+                            <Button Tag="🤔" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="🤔" FontSize="24"/>
+                            </Button>
+                            <Button Tag="😎" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                <emoji:TextBlock Text="😎" FontSize="24"/>
+                            </Button>
+                        </UniformGrid>
+                    </Border>
+                </Popup>
+
+                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                    <Button x:Name="btnEmoji" ToolTip="Biểu tượng cảm xúc" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnEmoji_Click">
+                        <emoji:TextBlock Text="😊" FontSize="22"/>
+                    </Button>
+                    <Button x:Name="btnSendImage" ToolTip="Gửi Hình ảnh" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendImage_Click">
+                        <emoji:TextBlock Text="🖼️" FontSize="22"/>
+                    </Button>
+                    <Button x:Name="btnSendVideo" ToolTip="Gửi Video" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendVideo_Click">
+                        <emoji:TextBlock Text="🎬" FontSize="22"/>
+                    </Button>
+                    <Button x:Name="btnSendFile" ToolTip="Gửi File đính kèm" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendFile_Click">
+                        <emoji:TextBlock Text="📎" FontSize="22"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBox x:Name="txtMessage" Grid.Column="1" Height="45" Padding="15,0" FontSize="15" VerticalContentAlignment="Center" BorderBrush="#DDD" KeyDown="txtMessage_KeyDown"/>
+                <Button x:Name="btnSend" Content="Gửi" Grid.Column="2" Margin="10,0,0,0" Height="45" Background="#0084FF" Foreground="White" FontSize="14" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="btnSend_Click"/>
             </Grid>
         </Grid>
+
+        <Border Grid.Column="2" x:Name="pnlInfo" BorderBrush="#EEE" BorderThickness="1,0,0,0" Background="White">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="Both">
+                <StackPanel Margin="0,20,0,20">
+
+                    <Ellipse Width="90" Height="90" HorizontalAlignment="Center">
+                        <Ellipse.Fill>
+                            <ImageBrush ImageSource="{Binding AvatarSource}" Stretch="UniformToFill"/>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,15,0,5" Foreground="#1C1E21"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,25">
+                        <StackPanel Margin="0,0,40,0" Cursor="Hand" MouseLeftButtonDown="btnMute_Click" Background="Transparent">
+                            <Border Width="38" Height="38" CornerRadius="19" Background="#E4E6EB" Margin="0,0,0,8">
+                                <TextBlock x:Name="txtMuteIcon2" Text="🔔" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                            </Border>
+                            <TextBlock x:Name="txtMuteText2" Text="Tắt thông báo" HorizontalAlignment="Center" FontSize="12" Foreground="#050505" FontWeight="SemiBold"/>
+                        </StackPanel>
+
+                        <StackPanel Cursor="Hand" MouseLeftButtonDown="btnShowSearchMsg_Click" Background="Transparent">
+                            <Border Width="38" Height="38" CornerRadius="19" Background="#E4E6EB" Margin="0,0,0,8">
+                                <TextBlock Text="🔍" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                            </Border>
+                            <TextBlock Text="Tìm kiếm" HorizontalAlignment="Center" FontSize="12" Foreground="#050505" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Expander x:Name="expGroupCode" Header="Thông tin phòng chat" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="White" Visibility="Collapsed">
+                        <StackPanel Margin="10,5,0,10">
+                            <TextBlock Text="Mã tham gia:" Foreground="#666" FontSize="13"/>
+                            <TextBlock x:Name="txtInfoInviteCode" Text="Đang tải..." FontSize="16" FontWeight="Bold" Foreground="#0084FF" Cursor="Hand" ToolTip="Nhấn để copy" MouseLeftButtonDown="txtInfoInviteCode_Click"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander x:Name="expGroupMembers" Header="Thành viên (0)" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="White" Visibility="Collapsed">
+                        <ItemsControl x:Name="lstInfoMembers" Margin="5,5,0,10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Ellipse Width="36" Height="36" Grid.Column="0" Margin="0,0,10,0">
+                                            <Ellipse.Fill>
+                                                <ImageBrush ImageSource="{Binding Avatar}" Stretch="UniformToFill"/>
+                                            </Ellipse.Fill>
+                                        </Ellipse>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+
+                                        <Button Grid.Column="2" Content="Kết bạn" Background="#E4E6EB" Foreground="Black" BorderThickness="0" Padding="8,4" Margin="0,0,5,0" Cursor="Hand" Visibility="{Binding AddFriendVisibility}" Click="btnAddMemberFriend_Click" Tag="{Binding}">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="4"/>
+                                                </Style>
+                                            </Button.Resources>
+                                        </Button>
+
+                                        <Button Grid.Column="3" Content="Xóa" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Padding="8,4" Cursor="Hand" Visibility="{Binding KickVisibility}" Click="MemberAction_Kick" Tag="{Binding}">
+                                            <Button.Resources>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="CornerRadius" Value="4"/>
+                                                </Style>
+                                            </Button.Resources>
+                                        </Button>
+
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+
+                    <Expander Header="File phương tiện &amp; file" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="True" BorderThickness="0" Background="White">
+                        <TabControl BorderThickness="0" Background="White" Margin="0,10,0,0">
+                            <TabItem Header="Phương tiện" Background="White" FontWeight="SemiBold">
+                                <ItemsControl x:Name="lstInfoMedia" Margin="0,10,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <UniformGrid Columns="3" IsItemsHost="True"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="2" Height="85" CornerRadius="4" ClipToBounds="True" Background="#F0F2F5">
+                                                <Grid>
+                                                    <Image Source="{Binding AttachedImage}" Stretch="UniformToFill" Visibility="{Binding ImageVisibility}" Cursor="Hand" MouseLeftButtonDown="ImageMessage_Click" Tag="{Binding AttachedImage}"/>
+                                                    <Border Visibility="{Binding VideoVisibility}" Background="Black" Cursor="Hand" MouseLeftButtonDown="InfoMediaVideo_Click" Tag="{Binding}">
+                                                        <TextBlock Text="🎬" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </TabItem>
+
+                            <TabItem Header="File" Background="White" FontWeight="SemiBold">
+                                <ItemsControl x:Name="lstInfoFiles" Margin="0,10,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="12,10" Background="#F0F2F5" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="📁" FontSize="20" Margin="0,0,10,0"/>
+                                                    <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" FontSize="13" Foreground="#1C1E21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </TabItem>
+                        </TabControl>
+                    </Expander>
+
+                    <Button x:Name="btnInfoUnfriend" Content="Hủy bạn bè" Foreground="#E53935" Background="Transparent" BorderThickness="0" FontWeight="Bold" FontSize="15" HorizontalAlignment="Left" Margin="20,30,0,0" Cursor="Hand" Visibility="Collapsed" Click="btnUnfriend_Click"/>
+                    <Button x:Name="btnInfoLeaveGroup" Content="Rời khỏi nhóm" Foreground="#E53935" Background="Transparent" BorderThickness="0" FontWeight="Bold" FontSize="15" HorizontalAlignment="Left" Margin="20,30,0,0" Cursor="Hand" Visibility="Collapsed" Click="btnLeaveGroup_Click"/>
+                    <Button x:Name="btnInfoDeleteGroup" Content="Xóa nhóm" Foreground="#E53935" Background="Transparent" BorderThickness="0" FontWeight="Bold" FontSize="15" HorizontalAlignment="Left" Margin="20,10,0,0" Cursor="Hand" Visibility="Collapsed" Click="btnDeleteGroup_Click"/>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
     </Grid>
 </Window>

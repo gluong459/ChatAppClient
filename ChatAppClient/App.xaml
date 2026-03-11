@@ -4,6 +4,6 @@
              xmlns:local="clr-namespace:ChatAppClient"
              StartupUri="LoginWindow.xaml">
     <Application.Resources>
-         
+        <local:BooleanToChatColumnConverter x:Key="BooleanToChatColumnConverter"/>
     </Application.Resources>
 </Application>

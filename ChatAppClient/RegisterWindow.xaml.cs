@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Input;
@@ -14,10 +15,18 @@ namespace ChatAppClient
 
         private void btnRegister_Click(object sender, RoutedEventArgs e)
         {
-            string user = txtRegUsername.Text;
-            string display = txtDisplayname.Text;
+            string user = txtRegUsername.Text.Trim();
+            string display = txtDisplayname.Text.Trim();
+            string email = txtEmail.Text.Trim(); // Lấy email từ form
             string pass = txtRegPassword.Password;
             string rePass = txtRePassword.Password;
+
+            // Kiểm tra không cho để trống
+            if (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(pass))
+            {
+                MessageBox.Show("Vui lòng điền đầy đủ Tên đăng nhập, Email và Mật khẩu!");
+                return;
+            }
 
             if (pass != rePass)
             {
@@ -28,15 +37,15 @@ namespace ChatAppClient
             try
             {
                 // 1. Kết nối tạm đến Server để gửi đơn đăng ký
-                TcpClient client = new TcpClient("192.168.56.1", 8888); // Đổi IP nếu chạy khác máy
+                TcpClient client = new TcpClient("10.16.6.210", 8888); // Đổi IP nếu chạy khác máy
                 StreamWriter writer = new StreamWriter(client.GetStream()) { AutoFlush = true };
                 StreamReader reader = new StreamReader(client.GetStream());
 
-                // 2. Gửi lệnh: REGISTER|user|pass
-                writer.WriteLine($"REGISTER|{user}|{pass}|{display}");
+                // 2. Gửi lệnh: REGISTER|user|pass|display|email
+                writer.WriteLine($"REGISTER|{user}|{pass}|{display}|{email}");
 
                 // 3. Đọc phản hồi từ Server
-                string response = reader.ReadLine(); // Nhận về "OK|..." hoặc "FAIL|..."
+                string response = reader.ReadLine();
                 string[] parts = response.Split('|');
 
                 if (parts[0] == "OK")

@@ -1,10 +1,13 @@
 ﻿<Window x:Class="ChatAppClient.RegisterWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Đăng ký tài khoản" Height="550" Width="400" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        Title="Đăng ký tài khoản" Height="620" Width="400" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Grid Margin="20">
         <StackPanel VerticalAlignment="Center">
             <TextBlock Text="ĐĂNG KÝ" FontSize="32" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+
+            <TextBlock Text="Email:" Margin="0,10,0,5"/>
+            <TextBox x:Name="txtEmail" Height="30" Padding="5"/>
 
             <TextBlock Text="Tên đăng nhập:" Margin="0,0,0,5"/>
             <TextBox x:Name="txtRegUsername" Height="30" Padding="5"/>
@@ -19,9 +22,9 @@
             <PasswordBox x:Name="txtRePassword" Height="30" Padding="5"/>
 
             <Button x:Name="btnRegister" Content="Đăng ký" Height="40" Margin="0,25,0,10" 
-        Background="#007ACC" Foreground="White" FontSize="16" FontWeight="Bold"
-        Click="btnRegister_Click"
-        IsDefault="True"/>  
+                    Background="#007ACC" Foreground="White" FontSize="16" FontWeight="Bold"
+                    Click="btnRegister_Click"
+                    IsDefault="True"/>
 
             <TextBlock Text="Quay lại đăng nhập" HorizontalAlignment="Center" Cursor="Hand" Foreground="#555"
                        MouseLeftButtonDown="LinkLogin_Click"/>
