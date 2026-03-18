@@ -12,7 +12,6 @@ namespace ChatAppClient
         public string Name { get; set; }
     }
 
-    // THÊM LỚP MỚI ĐỂ QUẢN LÝ DANH SÁCH TÌM KIẾM
     public class SearchResultItem : INotifyPropertyChanged
     {
         public int Id { get; set; }
@@ -72,6 +71,10 @@ namespace ChatAppClient
         public AddFriendWindow(MainWindow main)
         {
             InitializeComponent();
+
+            // --- GỌI TRỢ THỦ ĐỔI MÀU THANH TIÊU ĐỀ ---
+            ThemeHelper.ApplyTitleBarTheme(this, MessageModel.IsDarkMode);
+
             _main = main;
 
             Requests = new ObservableCollection<RequestItem>();

@@ -12,6 +12,10 @@ namespace ChatAppClient
         public CreateGroupWindow(MainWindow main)
         {
             InitializeComponent();
+
+            // --- GỌI TRỢ THỦ ĐỔI MÀU THANH TIÊU ĐỀ ---
+            ThemeHelper.ApplyTitleBarTheme(this, MessageModel.IsDarkMode);
+
             _main = main;
 
             // Lấy danh sách bạn bè từ MainWindow đổ vào ListBox

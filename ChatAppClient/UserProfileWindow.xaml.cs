@@ -14,10 +14,13 @@ namespace ChatAppClient
         private string _currentAvatarBase64 = "";
         private bool _isAvatarChanged = false;
 
-        // ĐÃ THÊM THAM SỐ `string email = ""` VÀO HÀM DƯỚI ĐÂY:
         public UserProfileWindow(MainWindow parent, string displayName, string username, ImageSource currentAvatar, string email = "")
         {
             InitializeComponent();
+
+            // --- GỌI TRỢ THỦ ĐỔI MÀU THANH TIÊU ĐỀ ---
+            ThemeHelper.ApplyTitleBarTheme(this, MessageModel.IsDarkMode);
+
             _parent = parent;
             _originalName = displayName;
 
@@ -65,9 +68,10 @@ namespace ChatAppClient
         private void btnEdit_Click(object sender, RoutedEventArgs e)
         {
             txtDisplayName.IsReadOnly = false;
-            // Khi sửa: Nền trắng tinh, chữ đen
-            txtDisplayName.Background = new SolidColorBrush(Colors.White);
-            txtDisplayName.Foreground = new SolidColorBrush(Colors.Black);
+
+            // SỬA: Lấy màu theo Theme hiện tại thay vì gán chết màu Trắng/Đen
+            txtDisplayName.SetResourceReference(TextBox.BackgroundProperty, "BgMain");
+            txtDisplayName.SetResourceReference(TextBox.ForegroundProperty, "TextMain");
             txtDisplayName.BorderBrush = new SolidColorBrush(Color.FromRgb(0, 122, 204)); // Viền xanh khi focus
 
             txtDisplayName.Focus();
@@ -99,16 +103,17 @@ namespace ChatAppClient
             this.Close();
         }
 
-        // 4. KHI BẤM "HỦY" - (CHỖ NÀY ĐÃ SỬA MÀU)
+        // 4. KHI BẤM "HỦY" 
         private void btnCancel_Click(object sender, RoutedEventArgs e)
         {
             txtDisplayName.Text = _originalName;
 
             txtDisplayName.IsReadOnly = true;
-            // Khi hủy: Quay về nền xám nhạt (#F0F2F5), chữ đen
-            txtDisplayName.Background = new SolidColorBrush(Color.FromRgb(240, 242, 245));
-            txtDisplayName.Foreground = new SolidColorBrush(Color.FromRgb(51, 51, 51));
-            txtDisplayName.BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221));
+
+            // SỬA: Quay về màu động của Theme (BgInput) thay vì màu xám chết cứng
+            txtDisplayName.SetResourceReference(TextBox.BackgroundProperty, "BgInput");
+            txtDisplayName.SetResourceReference(TextBox.ForegroundProperty, "TextMain");
+            txtDisplayName.SetResourceReference(TextBox.BorderBrushProperty, "BorderColor");
 
             btnEdit.Visibility = Visibility.Visible;
             pnlActions.Visibility = Visibility.Collapsed;

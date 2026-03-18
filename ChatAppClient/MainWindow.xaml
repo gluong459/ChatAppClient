@@ -15,10 +15,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="true">
-                                <Setter Property="Background" TargetName="Bd" Value="#E6F2FF"/>
+                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource BgSelected}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="true">
-                                <Setter Property="Background" TargetName="Bd" Value="#F5F5F5"/>
+                                <Setter Property="Background" TargetName="Bd" Value="{DynamicResource BgHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -70,7 +70,7 @@
             </Grid>
         </Border>
 
-        <Border Grid.Column="0" BorderBrush="#DDDDDD" BorderThickness="0,0,1,0" Background="#F5F5F5">
+        <Border Grid.Column="0" BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,1,0" Background="{DynamicResource BgPanel}">
             <Grid Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -80,33 +80,41 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                    <Ellipse x:Name="imgMyAvatar" Width="40" Height="40" Cursor="Hand" ToolTip="Bấm để đổi ảnh đại diện">
+                <Grid Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Ellipse x:Name="imgMyAvatar" Grid.Column="0" Width="40" Height="40" Cursor="Hand" ToolTip="Bấm để đổi ảnh đại diện">
                         <Ellipse.Fill>
                             <SolidColorBrush Color="#007ACC"/>
                         </Ellipse.Fill>
                     </Ellipse>
-                    <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                        <TextBlock x:Name="lblWelcome" Text="User" FontWeight="Bold" FontSize="16"/>
-                        <TextBlock Text="Online" Foreground="Green" FontSize="12"/>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="lblWelcome" Text="User" FontWeight="Bold" FontSize="16" Foreground="{DynamicResource TextMain}"/>
+                        <TextBlock Text="Online" Foreground="LimeGreen" FontSize="12"/>
                     </StackPanel>
-                </StackPanel>
+
+                    <Button x:Name="btnThemeToggle" Grid.Column="2" Content="🌙" Background="Transparent" Foreground="{DynamicResource TextMain}" BorderThickness="0" FontSize="22" Cursor="Hand" Click="btnThemeToggle_Click" ToolTip="Đổi giao diện Sáng/Tối"/>
+                </Grid>
 
                 <StackPanel Grid.Row="1" Margin="0,0,0,15">
-                    <TextBlock Text="Tìm kiếm" FontWeight="Bold" Margin="0,0,0,5" Foreground="#666"/>
-                    <TextBox x:Name="txtSearch" Height="30" Padding="5" TextChanged="txtSearch_TextChanged"/>
+                    <TextBlock Text="Tìm kiếm" FontWeight="Bold" Margin="0,0,0,5" Foreground="{DynamicResource TextSub}"/>
+                    <TextBox x:Name="txtSearch" Height="30" Padding="5" TextChanged="txtSearch_TextChanged" Background="{DynamicResource BgInput}" Foreground="{DynamicResource TextMain}" BorderBrush="{DynamicResource BorderColor}"/>
                     <Grid Margin="0,5,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid Grid.Column="0" Margin="0,0,2,0">
-                            <Button x:Name="btnAddFriend" Content="Thêm Bạn (+)" Background="#FFF" BorderBrush="#CCC" Height="25" Click="btnAddFriend_Click"/>
+                            <Button x:Name="btnAddFriend" Content="Thêm Bạn (+)" Background="{DynamicResource BgMain}" Foreground="{DynamicResource TextMain}" BorderBrush="{DynamicResource BorderColor}" Height="25" Click="btnAddFriend_Click"/>
                             <Border x:Name="bdgNewRequest" Width="18" Height="18" Background="#E81123" CornerRadius="9" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-8,-5,0" BorderBrush="White" BorderThickness="1.5" Visibility="Collapsed">
                                 <TextBlock x:Name="txtRequestCount" Text="1" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
                             </Border>
                         </Grid>
-                        <Button Content="Tạo Nhóm" Grid.Column="1" Margin="2,0,0,0" Background="#FFF" BorderBrush="#CCC" Height="25" Click="btnCreateGroup_Click"/>
+                        <Button Content="Tạo Nhóm" Grid.Column="1" Margin="2,0,0,0" Background="{DynamicResource BgMain}" Foreground="{DynamicResource TextMain}" BorderBrush="{DynamicResource BorderColor}" Height="25" Click="btnCreateGroup_Click"/>
                     </Grid>
                 </StackPanel>
 
@@ -115,7 +123,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="BẠN BÈ" FontWeight="Bold" Foreground="#888" Margin="0,0,0,5"/>
+                    <TextBlock Text="BẠN BÈ" FontWeight="Bold" Foreground="{DynamicResource TextSub}" Margin="0,0,0,5"/>
                     <ListBox x:Name="lstFriends" Grid.Row="1" BorderThickness="0" Background="Transparent" SelectionChanged="lstFriends_SelectionChanged">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -131,9 +139,9 @@
                                                 <ImageBrush ImageSource="{Binding AvatarSource}" Stretch="UniformToFill"/>
                                             </Ellipse.Fill>
                                         </Ellipse>
-                                        <Border Width="12" Height="12" CornerRadius="6" BorderThickness="2" BorderBrush="White" Background="{Binding StatusColor}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="-2,-2"/>
+                                        <Border Width="12" Height="12" CornerRadius="6" BorderThickness="2" BorderBrush="{DynamicResource BgPanel}" Background="{Binding StatusColor}" VerticalAlignment="Bottom" HorizontalAlignment="Right" Margin="-2,-2"/>
                                     </Grid>
-                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource TextMain}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                     <Ellipse Grid.Column="2" Width="12" Height="12" Fill="#0084FF" VerticalAlignment="Center" Margin="10,0,10,0" Visibility="{Binding HasNewMessage, Converter={StaticResource BoolToVis}}"/>
                                 </Grid>
                             </DataTemplate>
@@ -146,13 +154,13 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="NHÓM CHAT" FontWeight="Bold" Foreground="#888" Margin="0,0,0,5"/>
+                    <TextBlock Text="NHÓM CHAT" FontWeight="Bold" Foreground="{DynamicResource TextSub}" Margin="0,0,0,5"/>
                     <ListBox x:Name="lstGroups" Grid.Row="1" BorderThickness="0" Background="Transparent" SelectionChanged="lstGroups_SelectionChanged">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal" Margin="0,5">
                                     <TextBlock Text="#" FontWeight="Bold" Foreground="Orange" Margin="0,0,10,0"/>
-                                    <TextBlock Text="{Binding Name}" FontSize="14"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="14" Foreground="{DynamicResource TextMain}"/>
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
@@ -164,27 +172,74 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-                    <Button x:Name="btnLogout" Content="Đăng xuất" Background="#F0F0F0" Foreground="#333" BorderThickness="0" Height="30" Click="btnLogout_Click" Margin="0,0,2,0"/>
-                    <Button x:Name="btnDeleteAccount" Grid.Column="1" Content="Xóa tài khoản" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Height="30" Click="btnDeleteAccount_Click" Margin="2,0,0,0"/>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Button x:Name="btnE2EESettings" Grid.ColumnSpan="2" Content="🔒 Đồng bộ Khóa bảo mật" Background="{DynamicResource BorderColor}" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold" BorderThickness="0" Height="30" Margin="0,0,0,8" Cursor="Hand" Click="btnE2EESettings_Click"/>
+
+                    <Button x:Name="btnLogout" Grid.Row="1" Content="Đăng xuất" Background="{DynamicResource BgInput}" Foreground="{DynamicResource TextSub}" BorderThickness="0" Height="30" Click="btnLogout_Click" Margin="0,0,2,0"/>
+                    <Button x:Name="btnDeleteAccount" Grid.Row="1" Grid.Column="1" Content="Xóa tài khoản" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Height="30" Click="btnDeleteAccount_Click" Margin="2,0,0,0"/>
                 </Grid>
             </Grid>
         </Border>
 
-        <Grid Grid.Column="1" Background="White">
+        <Grid Grid.Column="1" Background="{DynamicResource BgMain}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="50"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Border BorderBrush="#EEE" BorderThickness="0,0,0,1" Padding="15,0">
+            <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" Padding="15,0">
                 <Grid>
-                    <TextBlock x:Name="lblCurrentChat" Text="Chọn một cuộc hội thoại..." VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="#333"/>
-                    <Button Content="ⓘ" HorizontalAlignment="Right" Width="30" Height="30" Background="Transparent" BorderThickness="0" FontSize="20" FontWeight="Bold" Cursor="Hand" Click="btnToggleInfo_Click"/>
+                    <TextBlock x:Name="lblCurrentChat" Text="Chọn một cuộc hội thoại..." VerticalAlignment="Center" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextMain}"/>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Grid Margin="0,0,15,0">
+                            <Button x:Name="btnNotifications" Content="✉️" Width="30" Height="30" Background="Transparent" Foreground="{DynamicResource TextMain}" BorderThickness="0" FontSize="18" Cursor="Hand" Click="btnNotifications_Click"/>
+                            <Border x:Name="bdgUnreadNotif" Width="10" Height="10" Background="#E81123" CornerRadius="5" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0" Visibility="Collapsed" BorderBrush="{DynamicResource BgMain}" BorderThickness="1.5" IsHitTestVisible="False"/>
+
+                            <Popup x:Name="popNotifications" PlacementTarget="{Binding ElementName=btnNotifications}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" Margin="0,10,0,0">
+                                <Border Background="{DynamicResource BgMain}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="8" Width="280" MaxHeight="350">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.15"/>
+                                    </Border.Effect>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1">
+                                            <TextBlock Text="Thông báo" FontWeight="Bold" FontSize="15" Padding="12" Foreground="{DynamicResource TextMain}"/>
+                                        </Border>
+
+                                        <ListBox x:Name="lstNotifications" Grid.Row="1" BorderThickness="0" Background="Transparent" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1" Padding="12,10">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="13" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Time}" FontSize="11" Foreground="{DynamicResource TextSub}" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                        <TextBlock x:Name="txtEmptyNotif" Text="Chưa có thông báo nào" Foreground="{DynamicResource TextSub}" HorizontalAlignment="Center" Margin="0,20" Grid.Row="1" Visibility="Collapsed"/>
+                                    </Grid>
+                                </Border>
+                            </Popup>
+                        </Grid>
+
+                        <Button x:Name="btnToggleInfo" Content="ⓘ" Width="30" Height="30" Background="Transparent" Foreground="{DynamicResource TextMain}" BorderThickness="0" FontSize="20" FontWeight="Bold" Cursor="Hand" Click="btnToggleInfo_Click"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <ListBox x:Name="listMessages" Grid.Row="1" Margin="10" BorderThickness="0" Background="White" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+            <ListBox x:Name="listMessages" Grid.Row="1" Margin="10" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -211,7 +266,7 @@
                                 </Ellipse>
 
                                 <StackPanel>
-                                    <TextBlock Text="{Binding SenderName}" FontSize="11" Foreground="#999999" Margin="5,0,0,3" Visibility="{Binding SenderNameVisibility}"/>
+                                    <TextBlock Text="{Binding SenderName}" FontSize="11" Foreground="{DynamicResource TextSub}" Margin="5,0,0,3" Visibility="{Binding SenderNameVisibility}"/>
 
                                     <Border CornerRadius="{Binding BubbleRadius}" Padding="10" Background="{Binding BackgroundColor}" MaxWidth="450">
                                         <StackPanel>
@@ -228,11 +283,11 @@
                                                 </Button>
                                             </Grid>
 
-                                            <Border Visibility="{Binding FileVisibility}" Background="#F0F2F5" CornerRadius="8" Padding="10" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
+                                            <Border Visibility="{Binding FileVisibility}" Background="{DynamicResource BgInput}" CornerRadius="8" Padding="10" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📁" FontSize="24" Margin="0,0,10,0"/>
+                                                    <TextBlock Text="📁" FontSize="24" Margin="0,0,10,0" Foreground="{DynamicResource TextMain}"/>
                                                     <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding FileName}" FontWeight="Bold" FontSize="14" Foreground="#333" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                                                        <TextBlock Text="{Binding FileName}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextMain}" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
                                                         <TextBlock Text="Bấm để tải về máy" FontSize="11" Foreground="#007ACC" TextDecorations="Underline"/>
                                                     </StackPanel>
                                                 </StackPanel>
@@ -284,6 +339,11 @@
                                                 </Grid>
                                             </Border>
 
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0" Visibility="{Binding TimerVisibility, FallbackValue=Collapsed}">
+                                                <TextBlock Text="⏳ " FontSize="10" Foreground="#E53935"/>
+                                                <TextBlock Text="{Binding TimerText}" FontSize="11" Foreground="#E53935" FontWeight="Bold"/>
+                                            </StackPanel>
+
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
@@ -294,70 +354,76 @@
             </ListBox>
 
             <Grid Grid.Row="2" Margin="10,0,10,15">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="70"/>
-                </Grid.ColumnDefinitions>
+                <Grid x:Name="pnlChatInput">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="70"/>
+                    </Grid.ColumnDefinitions>
 
-                <Popup x:Name="popEmoji" PlacementTarget="{Binding ElementName=btnEmoji}" Placement="Top" StaysOpen="False" AllowsTransparency="True" Margin="0,0,0,5">
-                    <Border Background="White" BorderBrush="#CCC" BorderThickness="1" CornerRadius="8" Padding="5">
-                        <UniformGrid Columns="5" Width="220" Height="140">
-                            <Button Tag="😀" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😀" FontSize="24"/>
-                            </Button>
-                            <Button Tag="😂" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😂" FontSize="24"/>
-                            </Button>
-                            <Button Tag="😍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😍" FontSize="24"/>
-                            </Button>
-                            <Button Tag="😭" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😭" FontSize="24"/>
-                            </Button>
-                            <Button Tag="😡" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😡" FontSize="24"/>
-                            </Button>
-                            <Button Tag="👍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="👍" FontSize="24"/>
-                            </Button>
-                            <Button Tag="❤️" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="❤️" FontSize="24"/>
-                            </Button>
-                            <Button Tag="🎉" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="🎉" FontSize="24"/>
-                            </Button>
-                            <Button Tag="🤔" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="🤔" FontSize="24"/>
-                            </Button>
-                            <Button Tag="😎" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
-                                <emoji:TextBlock Text="😎" FontSize="24"/>
-                            </Button>
-                        </UniformGrid>
-                    </Border>
-                </Popup>
+                    <Popup x:Name="popEmoji" PlacementTarget="{Binding ElementName=btnEmoji}" Placement="Top" StaysOpen="False" AllowsTransparency="True" Margin="0,0,0,5">
+                        <Border Background="{DynamicResource BgMain}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="8" Padding="5">
+                            <UniformGrid Columns="5" Width="220" Height="140">
+                                <Button Tag="😀" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😀" FontSize="24"/>
+                                </Button>
+                                <Button Tag="😂" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😂" FontSize="24"/>
+                                </Button>
+                                <Button Tag="😍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😍" FontSize="24"/>
+                                </Button>
+                                <Button Tag="😭" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😭" FontSize="24"/>
+                                </Button>
+                                <Button Tag="😡" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😡" FontSize="24"/>
+                                </Button>
+                                <Button Tag="👍" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="👍" FontSize="24"/>
+                                </Button>
+                                <Button Tag="❤️" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="❤️" FontSize="24"/>
+                                </Button>
+                                <Button Tag="🎉" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="🎉" FontSize="24"/>
+                                </Button>
+                                <Button Tag="🤔" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="🤔" FontSize="24"/>
+                                </Button>
+                                <Button Tag="😎" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="Emoji_Click">
+                                    <emoji:TextBlock Text="😎" FontSize="24"/>
+                                </Button>
+                            </UniformGrid>
+                        </Border>
+                    </Popup>
 
-                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
-                    <Button x:Name="btnEmoji" ToolTip="Biểu tượng cảm xúc" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnEmoji_Click">
-                        <emoji:TextBlock Text="😊" FontSize="22"/>
-                    </Button>
-                    <Button x:Name="btnSendImage" ToolTip="Gửi Hình ảnh" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendImage_Click">
-                        <emoji:TextBlock Text="🖼️" FontSize="22"/>
-                    </Button>
-                    <Button x:Name="btnSendVideo" ToolTip="Gửi Video" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendVideo_Click">
-                        <emoji:TextBlock Text="🎬" FontSize="22"/>
-                    </Button>
-                    <Button x:Name="btnSendFile" ToolTip="Gửi File đính kèm" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendFile_Click">
-                        <emoji:TextBlock Text="📎" FontSize="22"/>
-                    </Button>
-                </StackPanel>
+                    <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center">
+                        <Button x:Name="btnEmoji" ToolTip="Biểu tượng cảm xúc" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnEmoji_Click">
+                            <emoji:TextBlock Text="😊" FontSize="22"/>
+                        </Button>
+                        <Button x:Name="btnSendImage" ToolTip="Gửi Hình ảnh" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendImage_Click">
+                            <emoji:TextBlock Text="🖼️" FontSize="22"/>
+                        </Button>
+                        <Button x:Name="btnSendVideo" ToolTip="Gửi Video" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendVideo_Click">
+                            <emoji:TextBlock Text="🎬" FontSize="22"/>
+                        </Button>
+                        <Button x:Name="btnSendFile" ToolTip="Gửi File đính kèm" Width="35" Height="40" Background="Transparent" BorderThickness="0" Cursor="Hand" Click="btnSendFile_Click">
+                            <emoji:TextBlock Text="📎" FontSize="22"/>
+                        </Button>
+                    </StackPanel>
 
-                <TextBox x:Name="txtMessage" Grid.Column="1" Height="45" Padding="15,0" FontSize="15" VerticalContentAlignment="Center" BorderBrush="#DDD" KeyDown="txtMessage_KeyDown"/>
-                <Button x:Name="btnSend" Content="Gửi" Grid.Column="2" Margin="10,0,0,0" Height="45" Background="#0084FF" Foreground="White" FontSize="14" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="btnSend_Click"/>
+                    <TextBox x:Name="txtMessage" Grid.Column="1" Height="45" Padding="15,0" FontSize="15" VerticalContentAlignment="Center" Background="{DynamicResource BgInput}" Foreground="{DynamicResource TextMain}" BorderBrush="{DynamicResource BorderColor}" KeyDown="txtMessage_KeyDown"/>
+                    <Button x:Name="btnSend" Content="Gửi" Grid.Column="2" Margin="10,0,0,0" Height="45" Background="#0084FF" Foreground="White" FontSize="14" FontWeight="Bold" BorderThickness="0" Cursor="Hand" Click="btnSend_Click"/>
+                </Grid>
+
+                <Border x:Name="pnlChatBlocked" Background="{DynamicResource BgInput}" CornerRadius="22" Visibility="Collapsed" Height="45" Padding="15,0">
+                    <TextBlock Text="Bạn không thể nhắn tin cho người này vì hai người không còn là bạn bè." Foreground="{DynamicResource TextSub}" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
             </Grid>
         </Grid>
 
-        <Border Grid.Column="2" x:Name="pnlInfo" BorderBrush="#EEE" BorderThickness="1,0,0,0" Background="White">
+        <Border Grid.Column="2" x:Name="pnlInfo" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1,0,0,0" Background="{DynamicResource BgMain}">
             <ScrollViewer VerticalScrollBarVisibility="Auto" PanningMode="Both">
                 <StackPanel Margin="0,20,0,20">
 
@@ -366,32 +432,76 @@
                             <ImageBrush ImageSource="{Binding AvatarSource}" Stretch="UniformToFill"/>
                         </Ellipse.Fill>
                     </Ellipse>
-                    <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,15,0,5" Foreground="#1C1E21"/>
+                    <TextBlock Text="{Binding Name}" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,15,0,5" Foreground="{DynamicResource TextMain}"/>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,25">
+                    <Border x:Name="bdgE2EE" Background="{DynamicResource BgInput}" CornerRadius="12" HorizontalAlignment="Center" Padding="12,6" Margin="0,0,0,15" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔒" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMain}"/>
+                            <TextBlock Text="Được mã hóa đầu cuối" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextMain}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,25">
                         <StackPanel Margin="0,0,40,0" Cursor="Hand" MouseLeftButtonDown="btnMute_Click" Background="Transparent">
-                            <Border Width="38" Height="38" CornerRadius="19" Background="#E4E6EB" Margin="0,0,0,8">
-                                <TextBlock x:Name="txtMuteIcon2" Text="🔔" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                            <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource BgInput}" Margin="0,0,0,8">
+                                <TextBlock x:Name="txtMuteIcon2" Text="🔔" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource TextMain}"/>
                             </Border>
-                            <TextBlock x:Name="txtMuteText2" Text="Tắt thông báo" HorizontalAlignment="Center" FontSize="12" Foreground="#050505" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="txtMuteText2" Text="Tắt thông báo" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold"/>
                         </StackPanel>
 
                         <StackPanel Cursor="Hand" MouseLeftButtonDown="btnShowSearchMsg_Click" Background="Transparent">
-                            <Border Width="38" Height="38" CornerRadius="19" Background="#E4E6EB" Margin="0,0,0,8">
-                                <TextBlock Text="🔍" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+                            <Border Width="38" Height="38" CornerRadius="19" Background="{DynamicResource BgInput}" Margin="0,0,0,8">
+                                <TextBlock Text="🔍" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" Foreground="{DynamicResource TextMain}"/>
                             </Border>
-                            <TextBlock Text="Tìm kiếm" HorizontalAlignment="Center" FontSize="12" Foreground="#050505" FontWeight="SemiBold"/>
+                            <TextBlock Text="Tìm kiếm" HorizontalAlignment="Center" FontSize="12" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold"/>
                         </StackPanel>
                     </StackPanel>
 
-                    <Expander x:Name="expGroupCode" Header="Thông tin phòng chat" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="White" Visibility="Collapsed">
+                    <Border x:Name="pnlSelfDestructContainer" Margin="10,0,10,15" Background="{DynamicResource BgInput}" CornerRadius="8" Visibility="Collapsed">
+                        <StackPanel>
+                            <Grid x:Name="btnSelfDestruct" Cursor="Hand" MouseLeftButtonUp="btnSelfDestruct_Click" Background="Transparent" Margin="12,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="⏱️" FontSize="20" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{DynamicResource TextMain}"/>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Tin nhắn tự hủy" FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource TextMain}"/>
+                                    <TextBlock x:Name="txtSelfDestructStatus" Text="Tắt" FontSize="12" Foreground="{DynamicResource TextSub}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="❯" FontSize="14" Foreground="{DynamicResource TextSub}" VerticalAlignment="Center" FontWeight="Bold"/>
+                            </Grid>
+
+                            <Popup x:Name="popSelfDestruct" PlacementTarget="{Binding ElementName=btnSelfDestruct}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" Margin="0,5,0,0">
+                                <Border Background="{DynamicResource BgMain}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="8" Width="260" Padding="10">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.15"/>
+                                    </Border.Effect>
+                                    <StackPanel x:Name="pnlSelfDestructOptions">
+                                        <TextBlock Text="Thời gian tự hủy" FontWeight="Bold" FontSize="15" Margin="0,0,0,10" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="Tắt" Tag="0" IsChecked="True" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="30 giây" Tag="30" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="1 phút" Tag="60" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="5 phút" Tag="300" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="10 phút" Tag="600" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="30 phút" Tag="1800" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="1 tiếng" Tag="3600" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                        <RadioButton Content="24 giờ" Tag="86400" Margin="0,6" Checked="SelfDestruct_Checked" Foreground="{DynamicResource TextMain}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </StackPanel>
+                    </Border>
+
+                    <Expander x:Name="expGroupCode" Header="Thông tin phòng chat" Foreground="{DynamicResource TextMain}" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="Transparent" Visibility="Collapsed">
                         <StackPanel Margin="10,5,0,10">
-                            <TextBlock Text="Mã tham gia:" Foreground="#666" FontSize="13"/>
+                            <TextBlock Text="Mã tham gia:" Foreground="{DynamicResource TextSub}" FontSize="13"/>
                             <TextBlock x:Name="txtInfoInviteCode" Text="Đang tải..." FontSize="16" FontWeight="Bold" Foreground="#0084FF" Cursor="Hand" ToolTip="Nhấn để copy" MouseLeftButtonDown="txtInfoInviteCode_Click"/>
                         </StackPanel>
                     </Expander>
 
-                    <Expander x:Name="expGroupMembers" Header="Thành viên (0)" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="White" Visibility="Collapsed">
+                    <Expander x:Name="expGroupMembers" Header="Thành viên (0)" Foreground="{DynamicResource TextMain}" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="False" BorderThickness="0" Background="Transparent" Visibility="Collapsed">
                         <ItemsControl x:Name="lstInfoMembers" Margin="5,5,0,10">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -407,16 +517,15 @@
                                                 <ImageBrush ImageSource="{Binding Avatar}" Stretch="UniformToFill"/>
                                             </Ellipse.Fill>
                                         </Ellipse>
-                                        <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="{DynamicResource TextMain}" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis"/>
 
-                                        <Button Grid.Column="2" Content="Kết bạn" Background="#E4E6EB" Foreground="Black" BorderThickness="0" Padding="8,4" Margin="0,0,5,0" Cursor="Hand" Visibility="{Binding AddFriendVisibility}" Click="btnAddMemberFriend_Click" Tag="{Binding}">
+                                        <Button Grid.Column="2" Content="Kết bạn" Background="{DynamicResource BgInput}" Foreground="{DynamicResource TextMain}" BorderThickness="0" Padding="8,4" Margin="0,0,5,0" Cursor="Hand" Visibility="{Binding AddFriendVisibility}" Click="btnAddMemberFriend_Click" Tag="{Binding}">
                                             <Button.Resources>
                                                 <Style TargetType="Border">
                                                     <Setter Property="CornerRadius" Value="4"/>
                                                 </Style>
                                             </Button.Resources>
                                         </Button>
-
                                         <Button Grid.Column="3" Content="Xóa" Background="#FFDDDD" Foreground="Red" BorderThickness="0" Padding="8,4" Cursor="Hand" Visibility="{Binding KickVisibility}" Click="MemberAction_Kick" Tag="{Binding}">
                                             <Button.Resources>
                                                 <Style TargetType="Border">
@@ -424,16 +533,39 @@
                                                 </Style>
                                             </Button.Resources>
                                         </Button>
-
                                     </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </Expander>
 
-                    <Expander Header="File phương tiện &amp; file" Foreground="#1C1E21" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="True" BorderThickness="0" Background="White">
-                        <TabControl BorderThickness="0" Background="White" Margin="0,10,0,0">
-                            <TabItem Header="Phương tiện" Background="White" FontWeight="SemiBold">
+                    <Expander Header="File phương tiện &amp; file" Foreground="{DynamicResource TextMain}" FontWeight="Bold" FontSize="15" Margin="5,0" IsExpanded="True" BorderThickness="0" Background="Transparent">
+                        <TabControl BorderThickness="0" Background="Transparent" Margin="0,10,0,0">
+
+                            <TabControl.Resources>
+                                <Style TargetType="TabItem">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TabItem">
+                                                <Border x:Name="TabBorder" Padding="15,8" Background="Transparent">
+                                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" RecognizesAccessKey="True"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="TabBorder" Property="Background" Value="{DynamicResource BgInput}" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextMain}" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsSelected" Value="False">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextSub}" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TabControl.Resources>
+
+                            <TabItem Header="Phương tiện" FontWeight="SemiBold">
                                 <ItemsControl x:Name="lstInfoMedia" Margin="0,10,0,0">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -442,7 +574,7 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Margin="2" Height="85" CornerRadius="4" ClipToBounds="True" Background="#F0F2F5">
+                                            <Border Margin="2" Height="85" CornerRadius="4" ClipToBounds="True" Background="{DynamicResource BgInput}">
                                                 <Grid>
                                                     <Image Source="{Binding AttachedImage}" Stretch="UniformToFill" Visibility="{Binding ImageVisibility}" Cursor="Hand" MouseLeftButtonDown="ImageMessage_Click" Tag="{Binding AttachedImage}"/>
                                                     <Border Visibility="{Binding VideoVisibility}" Background="Black" Cursor="Hand" MouseLeftButtonDown="InfoMediaVideo_Click" Tag="{Binding}">
@@ -455,14 +587,14 @@
                                 </ItemsControl>
                             </TabItem>
 
-                            <TabItem Header="File" Background="White" FontWeight="SemiBold">
+                            <TabItem Header="File" FontWeight="SemiBold">
                                 <ItemsControl x:Name="lstInfoFiles" Margin="0,10,0,0">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Padding="12,10" Background="#F0F2F5" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
+                                            <Border Padding="12,10" Background="{DynamicResource BgInput}" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📁" FontSize="20" Margin="0,0,10,0"/>
-                                                    <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" FontSize="13" Foreground="#1C1E21" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
+                                                    <TextBlock Text="📁" FontSize="20" Margin="0,0,10,0" Foreground="{DynamicResource TextMain}"/>
+                                                    <TextBlock Text="{Binding FileName}" VerticalAlignment="Center" FontSize="13" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="180"/>
                                                 </StackPanel>
                                             </Border>
                                         </DataTemplate>

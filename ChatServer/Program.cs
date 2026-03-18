@@ -26,29 +26,26 @@ namespace ChatServer
         static Dictionary<int, ClientInfo> onlineClients = new Dictionary<int, ClientInfo>();
         static object lockObj = new object();
 
-        // Thư mục lưu trữ File và Video của hệ thống
         static string uploadDir = "UploadedFiles";
 
-        // --- THIẾT LẬP EMAIL CỦA BẠN TẠI ĐÂY ---
         static string smtpEmail = "gluong27@gmail.com";
         static string smtpPass = "etceicalfrnchnnq";
         static Dictionary<string, string> resetCodes = new Dictionary<string, string>();
 
         static void Main(string[] args)
         {
-            // 1. Tạo thư mục lưu file nếu chưa có
             if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+            InitializeDatabase();
 
             Thread udpThread = new Thread(UdpDiscoveryServer);
             udpThread.IsBackground = true;
             udpThread.Start();
 
-            // 2. KHỞI ĐỘNG FILE SERVER (Cổng 8889 - Chuyên xử lý File)
             Thread fileServerThread = new Thread(FileServerListener);
             fileServerThread.IsBackground = true;
             fileServerThread.Start();
 
-            // 3. KHỞI ĐỘNG CHAT SERVER (Cổng 8888)
             TcpListener server = new TcpListener(IPAddress.Any, 8888);
             try
             {
@@ -71,6 +68,88 @@ namespace ChatServer
                 }
                 catch { }
             }
+        }
+
+        static void InitializeDatabase()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string sqlNotif = @"
+                        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+                        BEGIN
+                            CREATE TABLE Notifications (
+                                Id INT IDENTITY(1,1) PRIMARY KEY,
+                                UserId INT NOT NULL,
+                                Message NVARCHAR(500) NOT NULL,
+                                CreatedAt DATETIME DEFAULT GETDATE()
+                            )
+                        END";
+                    using (SqlCommand cmd = new SqlCommand(sqlNotif, conn)) cmd.ExecuteNonQuery();
+
+                    string sqlPubKey = @"
+                        IF COL_LENGTH('Users', 'PublicKey') IS NULL
+                        BEGIN
+                            ALTER TABLE Users ADD PublicKey NVARCHAR(MAX) NULL
+                        END";
+                    using (SqlCommand cmd = new SqlCommand(sqlPubKey, conn)) cmd.ExecuteNonQuery();
+
+                    string sqlEncKey = @"
+                        IF COL_LENGTH('Users', 'EncryptedPrivateKey') IS NULL
+                        BEGIN
+                            ALTER TABLE Users ADD EncryptedPrivateKey NVARCHAR(MAX) NULL
+                        END";
+                    using (SqlCommand cmd = new SqlCommand(sqlEncKey, conn)) cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex) { Console.WriteLine("Lỗi khởi tạo Database: " + ex.Message); }
+        }
+
+        static void SaveNotification(int userId, string message)
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string sql = "INSERT INTO Notifications (UserId, Message) VALUES (@uid, @msg)";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@uid", userId);
+                        cmd.Parameters.AddWithValue("@msg", message);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch { }
+        }
+
+        static void HandleGetNotifications(ClientInfo client)
+        {
+            try
+            {
+                StringBuilder sb = new StringBuilder("NOTIF_LIST");
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string sql = "SELECT TOP 30 Message, CreatedAt FROM Notifications WHERE UserId=@uid ORDER BY CreatedAt DESC";
+                    SqlCommand cmd = new SqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@uid", client.UserId);
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            string msg = r.GetString(0);
+                            string time = r.GetDateTime(1).ToString("HH:mm - dd/MM/yyyy");
+                            sb.Append($"|{msg}|{time}");
+                        }
+                    }
+                }
+                client.Writer.WriteLine(sb.ToString());
+            }
+            catch { }
         }
 
         #region TCP FILE SERVER (PORT 8889)
@@ -298,6 +377,7 @@ namespace ChatServer
                         else if (command == "KICK_MEMBER") HandleKickMember(parts, currentClient);
                         else if (command == "DELETE_GROUP") HandleDeleteGroup(parts, currentClient);
                         else if (command == "GET_HISTORY") HandleGetHistory(parts, currentClient);
+                        else if (command == "GET_NOTIFS") HandleGetNotifications(currentClient);
                         else if (command == "GET_MY_EMAIL")
                         {
                             using (SqlConnection conn = new SqlConnection(connectionString))
@@ -309,6 +389,71 @@ namespace ChatServer
                                 currentClient.Writer.WriteLine($"MY_EMAIL|{email}");
                             }
                         }
+                        else if (command == "UPDATE_PUBLICKEY")
+                        {
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                SqlCommand cmd = new SqlCommand("UPDATE Users SET PublicKey=@pk WHERE Id=@id", conn);
+                                cmd.Parameters.AddWithValue("@pk", parts[1]);
+                                cmd.Parameters.AddWithValue("@id", currentClient.UserId);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        else if (command == "GET_PUBLICKEY")
+                        {
+                            int targetId = int.Parse(parts[1]);
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                SqlCommand cmd = new SqlCommand("SELECT PublicKey FROM Users WHERE Id=@id", conn);
+                                cmd.Parameters.AddWithValue("@id", targetId);
+                                string pk = cmd.ExecuteScalar()?.ToString() ?? "";
+                                currentClient.Writer.WriteLine($"PUBLICKEY_RES|{targetId}|{pk}");
+                            }
+                        }
+
+                        else if (command == "GET_BACKUP_STATUS")
+                        {
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                SqlCommand cmd = new SqlCommand("SELECT EncryptedPrivateKey FROM Users WHERE Id=@id", conn);
+                                cmd.Parameters.AddWithValue("@id", currentClient.UserId);
+                                string ek = cmd.ExecuteScalar()?.ToString() ?? "";
+                                currentClient.Writer.WriteLine($"BACKUP_STATUS|{ek}");
+                            }
+                        }
+                        else if (command == "BACKUP_KEY")
+                        {
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                SqlCommand cmd = new SqlCommand("UPDATE Users SET EncryptedPrivateKey=@ek WHERE Id=@id", conn);
+                                cmd.Parameters.AddWithValue("@ek", parts[1]);
+                                cmd.Parameters.AddWithValue("@id", currentClient.UserId);
+                                cmd.ExecuteNonQuery();
+                            }
+                            currentClient.Writer.WriteLine("BACKUP_KEY_OK");
+                        }
+                        else if (command == "RECOVER_KEY")
+                        {
+                            using (SqlConnection conn = new SqlConnection(connectionString))
+                            {
+                                conn.Open();
+                                SqlCommand cmd = new SqlCommand("SELECT EncryptedPrivateKey FROM Users WHERE Id=@id", conn);
+                                cmd.Parameters.AddWithValue("@id", currentClient.UserId);
+                                string ek = cmd.ExecuteScalar()?.ToString() ?? "";
+                                currentClient.Writer.WriteLine($"RECOVER_KEY_RES|{ek}");
+                            }
+                        }
+
+                        // LỆNH TIÊU HỦY TIN NHẮN KHỎI DATABASE
+                        else if (command == "BURN_MSG")
+                        {
+                            HandleBurnMessage(parts, currentClient);
+                        }
+
                         else if (command == "DELETE_ACCOUNT") { HandleDeleteAccount(parts, currentClient); break; }
                     }
                 }
@@ -323,6 +468,46 @@ namespace ChatServer
                     Console.WriteLine($">> {currentClient.Username} da thoat.");
                 }
                 try { client.Close(); } catch { }
+            }
+        }
+
+        static void HandleBurnMessage(string[] parts, ClientInfo client)
+        {
+            try
+            {
+                string type = parts[1];
+                int targetId = int.Parse(parts[2]);
+                // Vì RawPayload có thể chứa ký tự '|', ta gộp lại toàn bộ phần sau
+                string contentToBurn = parts.Length > 3 ? string.Join("|", parts.Skip(3)) : "";
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    if (type == "F")
+                    {
+                        // Tiêu hủy trong bảng Chat 1-1
+                        string sql = "DELETE FROM Messages WHERE ((SenderId=@me AND ReceiverId=@target) OR (SenderId=@target AND ReceiverId=@me)) AND Content=@c";
+                        SqlCommand cmd = new SqlCommand(sql, conn);
+                        cmd.Parameters.AddWithValue("@me", client.UserId);
+                        cmd.Parameters.AddWithValue("@target", targetId);
+                        cmd.Parameters.AddWithValue("@c", contentToBurn);
+                        cmd.ExecuteNonQuery();
+                    }
+                    else if (type == "G")
+                    {
+                        // Tiêu hủy trong bảng Chat Nhóm
+                        string sql = "DELETE FROM GroupMessages WHERE GroupId=@gid AND Content=@c";
+                        SqlCommand cmd = new SqlCommand(sql, conn);
+                        cmd.Parameters.AddWithValue("@gid", targetId);
+                        cmd.Parameters.AddWithValue("@c", contentToBurn);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                Console.WriteLine($">> [BẢO MẬT] Đã tiêu hủy thành công 1 tin nhắn tự hủy của {client.Username}!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi tiêu hủy tin nhắn: " + ex.Message);
             }
         }
 
@@ -347,7 +532,7 @@ namespace ChatServer
                     if (onlineClients.ContainsKey(friendId))
                     {
                         onlineClients[friendId].Writer.WriteLine("GET_LIST");
-                        onlineClients[friendId].Writer.WriteLine($"MSG_SYS|{client.Username} đã hủy kết bạn với bạn.");
+                        onlineClients[friendId].Writer.WriteLine($"UNFRIENDED|{client.UserId}");
                     }
                 }
 
@@ -550,18 +735,21 @@ namespace ChatServer
                     cmd.Parameters.AddWithValue("@target", targetId);
                     cmd.ExecuteNonQuery();
 
-                    client.Writer.WriteLine("MSG_SYS|Đã gửi lời mời kết bạn.");
+                    string notifMsg = $"{client.Username} đã gửi cho bạn một lời mời kết bạn!";
+                    SaveNotification(targetId, notifMsg);
 
                     lock (lockObj)
                     {
                         if (onlineClients.ContainsKey(targetId))
                         {
                             onlineClients[targetId].Writer.WriteLine("NEW_REQ|Có lời mời kết bạn mới!");
+                            string timeStr = DateTime.Now.ToString("HH:mm - dd/MM/yyyy");
+                            onlineClients[targetId].Writer.WriteLine($"NEW_NOTIF|{notifMsg}|{timeStr}");
                         }
                     }
                 }
             }
-            catch { client.Writer.WriteLine("MSG_SYS|Lỗi: Đã có lời mời trước đó."); }
+            catch { }
         }
 
         static void HandleGetRequestList(ClientInfo client)
@@ -609,14 +797,17 @@ namespace ChatServer
                         }
                         catch { }
 
-                        client.Writer.WriteLine("MSG_SYS|Đã chấp nhận kết bạn!");
                         HandleGetList(client);
+
+                        string notifMsg = $"{client.Username} đã chấp nhận lời mời kết bạn của bạn!";
+                        SaveNotification(requesterId, notifMsg);
 
                         lock (lockObj)
                         {
                             if (onlineClients.ContainsKey(requesterId))
                             {
-                                onlineClients[requesterId].Writer.WriteLine("MSG_SYS|Lời mời kết bạn đã được chấp nhận!");
+                                string timeStr = DateTime.Now.ToString("HH:mm - dd/MM/yyyy");
+                                onlineClients[requesterId].Writer.WriteLine($"NEW_NOTIF|{notifMsg}|{timeStr}");
                                 HandleGetList(onlineClients[requesterId]);
                             }
                         }
@@ -627,7 +818,6 @@ namespace ChatServer
                         delCmd.Parameters.AddWithValue("@req", requesterId);
                         delCmd.Parameters.AddWithValue("@me", client.UserId);
                         delCmd.ExecuteNonQuery();
-                        client.Writer.WriteLine("MSG_SYS|Đã từ chối lời mời.");
                     }
                 }
                 HandleGetRequestList(client);
@@ -680,15 +870,23 @@ namespace ChatServer
                         cmdMem.Parameters.AddWithValue("@uid", uId);
                         cmdMem.ExecuteNonQuery();
 
-                        lock (lockObj)
+                        if (uId != client.UserId)
                         {
-                            if (onlineClients.ContainsKey(uId))
+                            string notifMsg = $"Bạn đã được thêm vào nhóm '{groupName}'";
+                            SaveNotification(uId, notifMsg);
+
+                            lock (lockObj)
                             {
-                                onlineClients[uId].Writer.WriteLine($"MSG_SYS|Bạn đã được thêm vào nhóm '{groupName}'");
-                                HandleGetList(onlineClients[uId]);
+                                if (onlineClients.ContainsKey(uId))
+                                {
+                                    string timeStr = DateTime.Now.ToString("HH:mm - dd/MM/yyyy");
+                                    onlineClients[uId].Writer.WriteLine($"NEW_NOTIF|{notifMsg}|{timeStr}");
+                                    HandleGetList(onlineClients[uId]);
+                                }
                             }
                         }
                     }
+                    HandleGetList(client);
                 }
             }
             catch (Exception ex) { client.Writer.WriteLine("MSG_SYS|Lỗi tạo nhóm: " + ex.Message); }
@@ -725,7 +923,12 @@ namespace ChatServer
                             cmdJoin.Parameters.AddWithValue("@gid", groupId);
                             cmdJoin.Parameters.AddWithValue("@uid", client.UserId);
                             cmdJoin.ExecuteNonQuery();
-                            client.Writer.WriteLine($"MSG_SYS|Tham gia nhóm '{groupName}' thành công!");
+
+                            string notifMsg = $"Tham gia nhóm '{groupName}' thành công!";
+                            SaveNotification(client.UserId, notifMsg);
+                            string timeStr = DateTime.Now.ToString("HH:mm - dd/MM/yyyy");
+                            client.Writer.WriteLine($"NEW_NOTIF|{notifMsg}|{timeStr}");
+
                             HandleGetList(client);
                         }
                         else
@@ -1073,7 +1276,6 @@ namespace ChatServer
                 }
                 client.Writer.WriteLine("GET_LIST");
 
-                // Cập nhật lại danh sách thành viên cho những người còn lại trong nhóm
                 HandleGetGroupMembers(new string[] { "", groupId.ToString() }, client);
             }
             catch { }
@@ -1119,7 +1321,6 @@ namespace ChatServer
 
                     new SqlCommand($"DELETE FROM GroupMessages WHERE GroupId={groupId}", conn).ExecuteNonQuery();
 
-                    // Gửi lệnh báo cho các thành viên khác cập nhật lại danh sách nhóm
                     List<int> memberIds = new List<int>();
                     SqlCommand cmdGetMem = new SqlCommand("SELECT UserId FROM GroupMembers WHERE GroupId=@gid", conn);
                     cmdGetMem.Parameters.AddWithValue("@gid", groupId);

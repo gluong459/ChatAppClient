@@ -10,7 +10,7 @@ namespace ChatAppClient
     public partial class LoginWindow : Window
     {
         // CÀI CỨNG IP SERVER
-        private const string SERVER_IP = "10.16.6.210";
+        private const string SERVER_IP = "10.77.169.210";
         private const int SERVER_PORT = 8888;
 
         public LoginWindow()

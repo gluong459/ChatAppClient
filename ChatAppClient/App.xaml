@@ -5,5 +5,13 @@
              StartupUri="LoginWindow.xaml">
     <Application.Resources>
         <local:BooleanToChatColumnConverter x:Key="BooleanToChatColumnConverter"/>
+        <SolidColorBrush x:Key="BgMain" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BgPanel" Color="#F5F5F5"/>
+        <SolidColorBrush x:Key="TextMain" Color="#1C1E21"/>
+        <SolidColorBrush x:Key="TextSub" Color="#65676B"/>
+        <SolidColorBrush x:Key="BorderColor" Color="#E4E6EB"/>
+        <SolidColorBrush x:Key="BgInput" Color="#F0F2F5"/>
+        <SolidColorBrush x:Key="BgHover" Color="#F2F2F2"/>
+        <SolidColorBrush x:Key="BgSelected" Color="#E6F2FF"/>
     </Application.Resources>
 </Application>
