@@ -58,6 +58,7 @@ namespace ChatAppClient
     public class MessageModel : INotifyPropertyChanged
     {
         public static bool IsDarkMode = false;
+        public static bool IsAutoTheme = false;
 
         private int _remainingSeconds;
         public int RemainingSeconds { get => _remainingSeconds; set { _remainingSeconds = value; OnPropertyChanged("RemainingSeconds"); } }
@@ -72,6 +73,60 @@ namespace ChatAppClient
         public string TimerText { get => _timerText; set { _timerText = value; OnPropertyChanged("TimerText"); } }
 
         public string RawPayload { get; set; }
+
+        private bool _isBurnStarted = false;
+        public bool IsBurnStarted
+        {
+            get => _isBurnStarted;
+            set
+            {
+                _isBurnStarted = value;
+                UpdateBurnState(); // Ép cập nhật lại UI khi bắt đầu cháy
+                OnPropertyChanged("IsBurnStarted");
+            }
+        }
+
+        private bool _isContentRevealed = true;
+        public bool IsContentRevealed
+        {
+            get => _isContentRevealed;
+            set
+            {
+                _isContentRevealed = value;
+                OnPropertyChanged("IsContentRevealed");
+                OnPropertyChanged("ContentVisibility");
+                OnPropertyChanged("HiddenOverlayVisibility");
+            }
+        }
+        public Visibility ContentVisibility => IsContentRevealed ? Visibility.Visible : Visibility.Collapsed;
+        public Visibility HiddenOverlayVisibility => IsContentRevealed ? Visibility.Collapsed : Visibility.Visible;
+
+        // --- HÀM MỚI: QUẢN LÝ TRẠNG THÁI Ổ KHÓA UI ---
+        public void UpdateBurnState()
+        {
+            if (IsSelfDestructing)
+            {
+                if (!IsMe) // Nếu là người nhận
+                {
+                    if (IsBurnStarted)
+                    {
+                        IsContentRevealed = true;
+                        TimerVisibility = Visibility.Visible;
+                    }
+                    else
+                    {
+                        IsContentRevealed = false; // Bắt buộc giấu chữ đi
+                        TimerVisibility = Visibility.Collapsed;
+                    }
+                }
+                else // Nếu là người gửi
+                {
+                    IsContentRevealed = true;
+                    TimerVisibility = Visibility.Visible;
+                    if (!IsBurnStarted) TimerText = "Chờ người nhận đọc...";
+                }
+            }
+        }
 
         private string _content;
         public string Content
@@ -131,29 +186,31 @@ namespace ChatAppClient
                         if (string.IsNullOrEmpty(RawPayload)) RawPayload = safeValue;
                     }
 
-                    // TÍNH TOÁN LẠI THỜI GIAN THEO MỐC TUYỆT ĐỐI (UNIX TIME)
-                    Match timerMatch = Regex.Match(safeValue, @"\[EXP:(\d+)\]");
-                    if (timerMatch.Success)
+                    Match burnMatch = Regex.Match(safeValue, @"\[BURN:(\d+)\]");
+                    if (burnMatch.Success)
                     {
-                        long expTime = long.Parse(timerMatch.Groups[1].Value);
-                        long currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                        int remain = (int)(expTime - currentTime);
-
+                        int seconds = int.Parse(burnMatch.Groups[1].Value);
                         IsSelfDestructing = true;
-                        RemainingSeconds = remain;
-                        TimerVisibility = Visibility.Visible;
 
-                        if (RemainingSeconds > 0)
+                        if (BurnCacheManager.IsBurning(RawPayload))
                         {
-                            if (RemainingSeconds >= 3600) TimerText = TimeSpan.FromSeconds(RemainingSeconds).ToString(@"h\:mm\:ss");
-                            else TimerText = TimeSpan.FromSeconds(RemainingSeconds).ToString(@"mm\:ss");
+                            RemainingSeconds = BurnCacheManager.GetRemainingSeconds(RawPayload);
+                            IsBurnStarted = true;
                         }
                         else
                         {
-                            TimerText = "00:00"; // Hiện 00:00 và sẽ bị BurnTimer xóa ngay lập tức
+                            RemainingSeconds = seconds;
                         }
 
-                        safeValue = safeValue.Replace(timerMatch.Value, "");
+                        TimerVisibility = Visibility.Visible;
+
+                        if (RemainingSeconds >= 3600) TimerText = TimeSpan.FromSeconds(RemainingSeconds).ToString(@"h\:mm\:ss");
+                        else TimerText = TimeSpan.FromSeconds(RemainingSeconds).ToString(@"mm\:ss");
+
+                        safeValue = safeValue.Replace(burnMatch.Value, "");
+
+                        // Cập nhật ổ khóa ngay lập tức sau khi phân tích xong nội dung
+                        UpdateBurnState();
                     }
 
                     string actualPayload = safeValue;
@@ -259,7 +316,22 @@ namespace ChatAppClient
         public Visibility VideoStatusVisibility { get => _videoStatusVis; set { _videoStatusVis = value; OnPropertyChanged("VideoStatusVisibility"); } }
 
         private bool _isMe;
-        public bool IsMe { get => _isMe; set { if (_isMe == value) return; _isMe = value; OnPropertyChanged("IsMe"); OnPropertyChanged("Alignment"); OnPropertyChanged("TextColor"); OnPropertyChanged("BackgroundColor"); } }
+        public bool IsMe
+        {
+            get => _isMe;
+            set
+            {
+                // Đã xóa lỗi "if (_isMe == value) return;"
+                _isMe = value;
+
+                UpdateBurnState();
+
+                OnPropertyChanged("IsMe");
+                OnPropertyChanged("Alignment");
+                OnPropertyChanged("TextColor");
+                OnPropertyChanged("BackgroundColor");
+            }
+        }
         public HorizontalAlignment Alignment => IsMe ? HorizontalAlignment.Right : HorizontalAlignment.Left;
 
         public string TextColor => IsMe ? "White" : (IsDarkMode ? "#E4E6EB" : "Black");
@@ -321,6 +393,10 @@ namespace ChatAppClient
         Slider _activeVideoSlider;
         bool _isDraggingSlider = false;
         bool _isDraggingFS = false;
+
+        private Button _lastCopiedButton = null;
+        private CancellationTokenSource _copyCts = null;
+
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
         private void SetTitleBarTheme(bool isDark)
@@ -332,7 +408,7 @@ namespace ChatAppClient
                 int result = DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
                 if (result != 0) DwmSetWindowAttribute(hwnd, 19, ref dark, sizeof(int));
             }
-            catch {}
+            catch { }
         }
 
         public MainWindow(string userName, string displayName, TcpClient existingClient, string userAvatar = "")
@@ -343,6 +419,8 @@ namespace ChatAppClient
             this.DisplayName = displayName;
             this.client = existingClient;
             lblWelcome.Text = DisplayName;
+
+            BurnCacheManager.Load(); // Khởi động Local Cache
 
             var myImg = ImageUtils.Base64ToImage(userAvatar);
             if (myImg != null) imgMyAvatar.Fill = new ImageBrush(myImg) { Stretch = Stretch.UniformToFill };
@@ -436,27 +514,33 @@ namespace ChatAppClient
 
             if (File.Exists(themeFile))
             {
-                MessageModel.IsDarkMode = (File.ReadAllText(themeFile) == "DARK");
+                string[] parts = File.ReadAllText(themeFile).Split('|');
+                MessageModel.IsDarkMode = (parts[0] == "DARK");
+                if (parts.Length > 1) MessageModel.IsAutoTheme = (parts[1] == "AUTO");
             }
             else
             {
                 MessageModel.IsDarkMode = false;
+                MessageModel.IsAutoTheme = false;
             }
-            ApplyCurrentTheme();
+
+            if (MessageModel.IsAutoTheme) CheckAutoTheme();
+            else ApplyCurrentTheme();
         }
 
         private void SaveTheme()
         {
             string appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ChatAppSecurity");
             string themeFile = Path.Combine(appDataPath, $"theme_{this.UserName}.txt");
-            File.WriteAllText(themeFile, MessageModel.IsDarkMode ? "DARK" : "LIGHT");
+            string autoStr = MessageModel.IsAutoTheme ? "AUTO" : "MANUAL";
+            File.WriteAllText(themeFile, $"{(MessageModel.IsDarkMode ? "DARK" : "LIGHT")}|{autoStr}");
         }
 
         private void ApplyCurrentTheme()
         {
             if (MessageModel.IsDarkMode)
             {
-                ThemeHelper.ApplyTitleBarTheme(this, MessageModel.IsDarkMode);  
+                ThemeHelper.ApplyTitleBarTheme(this, MessageModel.IsDarkMode);
                 SetTitleBarTheme(MessageModel.IsDarkMode);
                 if (btnThemeToggle != null) btnThemeToggle.Content = "☀️";
                 Application.Current.Resources["BgMain"] = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#18191A"));
@@ -487,11 +571,49 @@ namespace ChatAppClient
             }
         }
 
+        private void CheckAutoTheme()
+        {
+            var now = DateTime.Now.TimeOfDay;
+            var startDark = new TimeSpan(19, 0, 0);
+            var endDark = new TimeSpan(6, 0, 0);
+
+            bool shouldBeDark = (now >= startDark || now < endDark);
+
+            if (MessageModel.IsDarkMode != shouldBeDark)
+            {
+                MessageModel.IsDarkMode = shouldBeDark;
+                ApplyCurrentTheme();
+                SaveTheme();
+            }
+        }
+
         private void btnThemeToggle_Click(object sender, RoutedEventArgs e)
         {
             MessageModel.IsDarkMode = !MessageModel.IsDarkMode;
+            MessageModel.IsAutoTheme = false;
+            if (FindName("chkAutoTheme") is CheckBox chk) chk.IsChecked = false;
+
             ApplyCurrentTheme();
             SaveTheme();
+        }
+
+        private void btnThemeSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (FindName("chkAutoTheme") is CheckBox chk) chk.IsChecked = MessageModel.IsAutoTheme;
+            if (FindName("popThemeSettings") is Popup pop) pop.IsOpen = !pop.IsOpen;
+        }
+
+        private void chkAutoTheme_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is CheckBox chk)
+            {
+                MessageModel.IsAutoTheme = chk.IsChecked == true;
+                if (MessageModel.IsAutoTheme)
+                {
+                    CheckAutoTheme();
+                }
+                SaveTheme();
+            }
         }
 
         public static T FindChild<T>(DependencyObject parent, string childName) where T : DependencyObject
@@ -692,8 +814,32 @@ namespace ChatAppClient
             }
         }
 
+        private void btnRevealMessage_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is MessageModel msg)
+            {
+                msg.IsContentRevealed = true;
+                msg.TimerVisibility = Visibility.Visible;
+                msg.IsBurnStarted = true;
+
+                // Lưu vào Cache ngay khi bấm
+                BurnCacheManager.StartBurn(msg.RawPayload, msg.RemainingSeconds);
+
+                if (currentTarget != null)
+                {
+                    SendToServer($"START_BURN|{currentTarget.Type}|{currentTarget.Id}|{msg.RawPayload}");
+                }
+            }
+        }
+
         private void BurnTimer_Tick(object sender, EventArgs e)
         {
+            // Kiểm tra Theme tự động
+            if (MessageModel.IsAutoTheme)
+            {
+                CheckAutoTheme();
+            }
+
             if (Messages == null) return;
 
             for (int i = Messages.Count - 1; i >= 0; i--)
@@ -701,14 +847,18 @@ namespace ChatAppClient
                 var msg = Messages[i];
                 if (msg.IsSelfDestructing)
                 {
+                    if (msg.IsMe && !msg.IsBurnStarted) continue;
+                    if (!msg.IsMe && !msg.IsContentRevealed) continue;
+
                     msg.RemainingSeconds--;
 
                     if (msg.RemainingSeconds <= 0)
                     {
                         string raw = msg.RawPayload;
                         Messages.RemoveAt(i);
+                        BurnCacheManager.RemoveBurn(raw); // Dọn dẹp bộ nhớ đệm
 
-                        if (currentTarget != null && !msg.IsMe)
+                        if (currentTarget != null)
                         {
                             SendToServer($"BURN_MSG|{currentTarget.Type}|{currentTarget.Id}|{raw}");
                         }
@@ -718,6 +868,46 @@ namespace ChatAppClient
                         if (msg.RemainingSeconds >= 3600) msg.TimerText = TimeSpan.FromSeconds(msg.RemainingSeconds).ToString(@"h\:mm\:ss");
                         else msg.TimerText = TimeSpan.FromSeconds(msg.RemainingSeconds).ToString(@"mm\:ss");
                     }
+                }
+            }
+        }
+
+        private async void btnCopyMessage_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true;
+
+            if (sender is Button btn && btn.Tag is string textToCopy)
+            {
+                if (!string.IsNullOrEmpty(textToCopy))
+                {
+                    Clipboard.SetText(textToCopy);
+
+                    if (_copyCts != null)
+                    {
+                        _copyCts.Cancel();
+                    }
+
+                    if (_lastCopiedButton != null && _lastCopiedButton != btn)
+                    {
+                        _lastCopiedButton.Content = "📋";
+                    }
+
+                    _lastCopiedButton = btn;
+                    btn.Content = "✔️";
+
+                    _copyCts = new CancellationTokenSource();
+                    var token = _copyCts.Token;
+
+                    try
+                    {
+                        await Task.Delay(1500, token);
+                        if (!token.IsCancellationRequested)
+                        {
+                            btn.Content = "📋";
+                            if (_lastCopiedButton == btn) _lastCopiedButton = null;
+                        }
+                    }
+                    catch (TaskCanceledException) { }
                 }
             }
         }
@@ -1194,13 +1384,13 @@ namespace ChatAppClient
                         }
                         else if (parts[0] == "HISTORY")
                         {
-                            listMessages.ItemsSource = null; Messages.Clear();
+                            Messages.Clear();
                             for (int i = 1; i < parts.Length; i++)
                             {
                                 string[] m = parts[i].Split(new[] { ':' }, 2);
                                 if (m.Length == 2) Messages.Add(new MessageModel { RawPayload = m[1], Content = m[1], IsMe = (int.Parse(m[0]) != currentTarget.Id), AvatarSource = currentTarget.AvatarSource });
                             }
-                            UpdateMessageGroupings(); listMessages.ItemsSource = Messages;
+                            UpdateMessageGroupings();
                             if (listMessages.Items.Count > 0) listMessages.ScrollIntoView(listMessages.Items[listMessages.Items.Count - 1]);
                             UpdateInfoPanelMedia();
                         }
@@ -1219,7 +1409,7 @@ namespace ChatAppClient
                         }
                         else if (parts[0] == "GROUP_HISTORY")
                         {
-                            listMessages.ItemsSource = null; Messages.Clear();
+                            Messages.Clear();
                             int myId = int.Parse(this.UserName);
                             for (int i = 1; i < parts.Length; i++)
                             {
@@ -1230,7 +1420,7 @@ namespace ChatAppClient
                                     Messages.Add(new MessageModel { RawPayload = (isMe ? m[2] : $"{m[1]}:\n{m[2]}"), Content = isMe ? m[2] : $"{m[1]}:\n{m[2]}", IsMe = isMe, AvatarSource = ImageUtils.Base64ToImage("") });
                                 }
                             }
-                            UpdateMessageGroupings(); listMessages.ItemsSource = Messages;
+                            UpdateMessageGroupings();
                             if (listMessages.Items.Count > 0) listMessages.ScrollIntoView(listMessages.Items[listMessages.Items.Count - 1]);
                             UpdateInfoPanelMedia();
                         }
@@ -1279,7 +1469,6 @@ namespace ChatAppClient
                                 else bdg.Visibility = Visibility.Collapsed;
                             }
                         }
-
                         else if (parts[0] == "NOTIF_LIST")
                         {
                             Notifications.Clear();
@@ -1301,7 +1490,6 @@ namespace ChatAppClient
                             if (FindName("bdgUnreadNotif") is Border bdg) bdg.Visibility = Visibility.Visible;
                             if (FindName("txtEmptyNotif") is TextBlock txtEmpty) txtEmpty.Visibility = Visibility.Collapsed;
                         }
-
                         else if (parts[0] == "UNFRIENDED")
                         {
                             int unfrienderId = int.Parse(parts[1]);
@@ -1318,7 +1506,6 @@ namespace ChatAppClient
                                 if (FindName("pnlSelfDestructContainer") is Border pnlSelf) pnlSelf.Visibility = Visibility.Collapsed;
                             }
                         }
-
                         else if (parts[0] == "PUBLICKEY_RES")
                         {
                             int targetId = int.Parse(parts[1]);
@@ -1329,7 +1516,6 @@ namespace ChatAppClient
                                 FriendPublicKeys[targetId] = pubKeyXml;
                             }
                         }
-
                         else if (parts[0] == "BACKUP_STATUS")
                         {
                             CurrentBackupEncrypted = parts.Length > 1 ? parts[1] : "";
@@ -1389,10 +1575,132 @@ namespace ChatAppClient
                         {
                             MessageBox.Show("Đã sao lưu Khóa bảo mật lên Server thành công!", "Hoàn tất");
                         }
-
                         else if (parts[0] == "MSG_SYS") MessageBox.Show(parts.Length > 1 ? parts[1] : "Thông báo", "Thông báo");
                         else if (parts[0] == "NEW_REQ") SendToServer("GET_REQ_LIST");
                         else if (parts[0] == "MY_EMAIL") UserEmail = parts.Length > 1 ? parts[1] : "Chưa cập nhật Email";
+
+                        // --- CÁC HÀM CẬP NHẬT GIAO DIỆN THỜI GIAN THỰC ---
+                        else if (parts[0] == "FRIEND_STATUS")
+                        {
+                            int friendId = int.Parse(parts[1]);
+                            bool isOnline = (parts[2] == "1");
+
+                            var friend = Friends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (friend != null) friend.IsOnline = isOnline;
+
+                            var allFriend = _allFriends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (allFriend != null) allFriend.IsOnline = isOnline;
+
+                            if (currentTarget != null && currentTarget.Id == friendId && currentTarget.Type == "F")
+                            {
+                                currentTarget.IsOnline = isOnline;
+                            }
+                        }
+                        else if (parts[0] == "PROFILE_UPDATED_OK")
+                        {
+                            string newName = parts[1];
+                            bool hasAvt = (parts[2] == "1");
+                            string newAvt = parts.Length > 3 ? parts[3] : "";
+
+                            DisplayName = newName;
+                            lblWelcome.Text = newName;
+
+                            if (hasAvt && !string.IsNullOrEmpty(newAvt))
+                            {
+                                var myImg = ImageUtils.Base64ToImage(newAvt);
+                                if (myImg != null) imgMyAvatar.Fill = new ImageBrush(myImg) { Stretch = Stretch.UniformToFill };
+                            }
+                        }
+                        else if (parts[0] == "AVATAR_UPDATE")
+                        {
+                            int friendId = int.Parse(parts[1]);
+                            string newAvt = parts.Length > 2 ? parts[2] : "";
+                            ImageSource newImg = ImageUtils.Base64ToImage(newAvt);
+
+                            var friend = Friends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (friend != null) friend.AvatarSource = newImg;
+
+                            var allFriend = _allFriends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (allFriend != null) allFriend.AvatarSource = newImg;
+
+                            if (currentTarget != null && currentTarget.Id == friendId && currentTarget.Type == "F")
+                            {
+                                currentTarget.AvatarSource = newImg;
+                                foreach (var msg in Messages) { if (!msg.IsMe) msg.AvatarSource = newImg; }
+                            }
+                        }
+                        else if (parts[0] == "FRIEND_PROFILE_UPDATE")
+                        {
+                            int friendId = int.Parse(parts[1]);
+                            string newName = parts[2];
+                            bool hasAvt = (parts[3] == "1");
+                            string newAvt = parts.Length > 4 ? parts[4] : "";
+
+                            var friend = Friends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (friend != null)
+                            {
+                                friend.Name = newName;
+                                if (hasAvt) friend.AvatarSource = ImageUtils.Base64ToImage(newAvt);
+                            }
+
+                            var allFriend = _allFriends.FirstOrDefault(f => f.Id == friendId && f.Type == "F");
+                            if (allFriend != null)
+                            {
+                                allFriend.Name = newName;
+                                if (hasAvt) allFriend.AvatarSource = ImageUtils.Base64ToImage(newAvt);
+                            }
+
+                            if (currentTarget != null && currentTarget.Id == friendId && currentTarget.Type == "F")
+                            {
+                                currentTarget.Name = newName;
+                                lblCurrentChat.Text = $"Chat với: {newName}";
+                                if (hasAvt)
+                                {
+                                    ImageSource newImg = ImageUtils.Base64ToImage(newAvt);
+                                    currentTarget.AvatarSource = newImg;
+                                    foreach (var msg in Messages) { if (!msg.IsMe) msg.AvatarSource = newImg; }
+                                }
+                            }
+                        }
+
+                        // --- XỬ LÝ ĐỒNG BỘ TIN NHẮN TỰ HỦY ---
+                        else if (parts[0] == "MSG_BURNED")
+                        {
+                            string burnedPayload = string.Join("|", parts.Skip(1));
+                            var msgToRemove = Messages.FirstOrDefault(m => m.RawPayload == burnedPayload);
+                            if (msgToRemove != null) Messages.Remove(msgToRemove);
+                            BurnCacheManager.RemoveBurn(burnedPayload);
+                        }
+                        else if (parts[0] == "MSG_BURN_STARTED")
+                        {
+                            string payload = string.Join("|", parts.Skip(1)).Trim();
+                            var msgToStart = Messages.FirstOrDefault(m => m.RawPayload != null &&
+                                            (m.RawPayload.Contains(payload) || payload.Contains(m.RawPayload)) && m.IsMe);
+
+                            if (msgToStart != null)
+                            {
+                                msgToStart.IsBurnStarted = true;
+                                if (msgToStart.RemainingSeconds >= 3600)
+                                    msgToStart.TimerText = TimeSpan.FromSeconds(msgToStart.RemainingSeconds).ToString(@"h\:mm\:ss");
+                                else
+                                    msgToStart.TimerText = TimeSpan.FromSeconds(msgToStart.RemainingSeconds).ToString(@"mm\:ss");
+
+                                BurnCacheManager.StartBurn(msgToStart.RawPayload, msgToStart.RemainingSeconds);
+                            }
+                        }
+                        else if (parts[0] == "KEY_CHANGED")
+                        {
+                            int changedUserId = int.Parse(parts[1]);
+
+                            // Xóa ngay khóa rác/khóa cũ trong RAM
+                            if (FriendPublicKeys.ContainsKey(changedUserId))
+                            {
+                                FriendPublicKeys.Remove(changedUserId);
+
+                                // Chủ động xin lại khóa mới luôn để lát nhắn tin không bị khựng
+                                SendToServer($"GET_PUBLICKEY|{changedUserId}");
+                            }
+                        }
                         else if (parts[0] == "DELETE_ACCOUNT_OK")
                         {
                             MessageBox.Show("Tài khoản của bạn đã được xóa vĩnh viễn khỏi hệ thống.", "Đã xóa");
@@ -1410,11 +1718,9 @@ namespace ChatAppClient
 
             string originalText = txtMessage.Text;
 
-            // CẬP NHẬT TÍNH TOÁN EXPIRATION TIME LÀ MỐC TUYỆT ĐỐI
             if (SelfDestructSeconds > 0)
             {
-                long expTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + SelfDestructSeconds;
-                originalText = $"[EXP:{expTime}]" + originalText;
+                originalText = $"[BURN:{SelfDestructSeconds}]" + originalText;
             }
 
             string payload = originalText;
@@ -1594,8 +1900,7 @@ namespace ChatAppClient
                     string originalText = "[IMG]" + base64;
                     if (SelfDestructSeconds > 0)
                     {
-                        long expTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + SelfDestructSeconds;
-                        originalText = $"[EXP:{expTime}]" + originalText;
+                        originalText = $"[BURN:{SelfDestructSeconds}]" + originalText;
                     }
                     string payload = originalText;
 
@@ -1678,8 +1983,7 @@ namespace ChatAppClient
                     string originalText = $"[FILE]{uniqueName}*{fi.Name}";
                     if (SelfDestructSeconds > 0)
                     {
-                        long expTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + SelfDestructSeconds;
-                        originalText = $"[EXP:{expTime}]" + originalText;
+                        originalText = $"[BURN:{SelfDestructSeconds}]" + originalText;
                     }
                     string payload = originalText;
 
@@ -1740,8 +2044,7 @@ namespace ChatAppClient
                     string originalText = $"[VID]{uniqueName}*{fi.Name}";
                     if (SelfDestructSeconds > 0)
                     {
-                        long expTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + SelfDestructSeconds;
-                        originalText = $"[EXP:{expTime}]" + originalText;
+                        originalText = $"[BURN:{SelfDestructSeconds}]" + originalText;
                     }
                     string payload = originalText;
 
@@ -1816,7 +2119,28 @@ namespace ChatAppClient
     public static class EncryptionHelper
     {
         public static string MyPublicKey = "";
-        public static string MyPrivateKey = "";
+
+        private static string _myPrivateKey = "";
+        public static string MyPrivateKey
+        {
+            get => _myPrivateKey;
+            set
+            {
+                _myPrivateKey = value;
+                if (_cachedRsa != null)
+                {
+                    _cachedRsa.Dispose();
+                    _cachedRsa = null;
+                }
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _cachedRsa = new RSACryptoServiceProvider();
+                    _cachedRsa.FromXmlString(value);
+                }
+            }
+        }
+
+        private static RSACryptoServiceProvider _cachedRsa;
 
         public static void GenerateRSAKeys()
         {
@@ -1831,7 +2155,7 @@ namespace ChatAppClient
         {
             try
             {
-                using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048))
+                using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
                 {
                     rsa.FromXmlString(publicKeyXml);
                     byte[] data = Encoding.UTF8.GetBytes(plainText);
@@ -1846,10 +2170,17 @@ namespace ChatAppClient
         {
             try
             {
-                using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048))
+                byte[] data = Convert.FromBase64String(cipherTextBase64);
+
+                if (privateKeyXml == MyPrivateKey && _cachedRsa != null)
+                {
+                    byte[] decryptedData = _cachedRsa.Decrypt(data, false);
+                    return Encoding.UTF8.GetString(decryptedData);
+                }
+
+                using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider())
                 {
                     rsa.FromXmlString(privateKeyXml);
-                    byte[] data = Convert.FromBase64String(cipherTextBase64);
                     byte[] decryptedData = rsa.Decrypt(data, false);
                     return Encoding.UTF8.GetString(decryptedData);
                 }
@@ -1988,6 +2319,81 @@ namespace ChatAppClient
                 int dark = isDark ? 1 : 0;
                 int result = DwmSetWindowAttribute(hwnd, 20, ref dark, sizeof(int));
                 if (result != 0) DwmSetWindowAttribute(hwnd, 19, ref dark, sizeof(int));
+            }
+            catch { }
+        }
+    }
+
+    // --- BỘ QUẢN LÝ GHI NHỚ LỊCH SỬ CHÁY TIN NHẮN (CACHE) ---
+    public static class BurnCacheManager
+    {
+        private static string CachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ChatCache", "burn_states.txt");
+        private static Dictionary<string, DateTime> _burningDict = new Dictionary<string, DateTime>();
+
+        public static void Load()
+        {
+            try
+            {
+                if (File.Exists(CachePath))
+                {
+                    var lines = File.ReadAllLines(CachePath);
+                    foreach (var line in lines)
+                    {
+                        var parts = line.Split(new string[] { "|||" }, StringSplitOptions.None);
+                        if (parts.Length == 2 && DateTime.TryParse(parts[1], out DateTime endTime))
+                        {
+                            _burningDict[parts[0]] = endTime;
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        public static void StartBurn(string rawPayload, int seconds)
+        {
+            if (string.IsNullOrEmpty(rawPayload)) return;
+            if (!_burningDict.ContainsKey(rawPayload))
+            {
+                _burningDict[rawPayload] = DateTime.Now.AddSeconds(seconds);
+                Save();
+            }
+        }
+
+        public static void RemoveBurn(string rawPayload)
+        {
+            if (string.IsNullOrEmpty(rawPayload)) return;
+            if (_burningDict.ContainsKey(rawPayload))
+            {
+                _burningDict.Remove(rawPayload);
+                Save();
+            }
+        }
+
+        public static bool IsBurning(string rawPayload)
+        {
+            return !string.IsNullOrEmpty(rawPayload) && _burningDict.ContainsKey(rawPayload);
+        }
+
+        public static int GetRemainingSeconds(string rawPayload)
+        {
+            if (!string.IsNullOrEmpty(rawPayload) && _burningDict.TryGetValue(rawPayload, out DateTime endTime))
+            {
+                int rem = (int)(endTime - DateTime.Now).TotalSeconds;
+                return rem > 0 ? rem : 0;
+            }
+            return 0;
+        }
+
+        private static void Save()
+        {
+            try
+            {
+                string dir = Path.GetDirectoryName(CachePath);
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+                var lines = _burningDict.Select(kv => $"{kv.Key}|||{kv.Value.ToString("O")}").ToArray();
+                File.WriteAllLines(CachePath, lines);
             }
             catch { }
         }

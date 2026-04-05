@@ -50,7 +50,7 @@ namespace ChatAppClient
             if (dlg.ShowDialog() == true)
             {
                 string filePath = dlg.FileName;
-                _currentAvatarBase64 = ImageUtils.ImageToBase64(filePath);
+                _currentAvatarBase64 = ImageUtils.CompressImageToBase64(filePath, 150, 70);
                 _isAvatarChanged = true;
 
                 var newImage = ImageUtils.Base64ToImage(_currentAvatarBase64);

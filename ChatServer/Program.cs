@@ -394,10 +394,30 @@ namespace ChatServer
                             using (SqlConnection conn = new SqlConnection(connectionString))
                             {
                                 conn.Open();
+                                // 1. Cập nhật khóa mới vào CSDL
                                 SqlCommand cmd = new SqlCommand("UPDATE Users SET PublicKey=@pk WHERE Id=@id", conn);
                                 cmd.Parameters.AddWithValue("@pk", parts[1]);
                                 cmd.Parameters.AddWithValue("@id", currentClient.UserId);
                                 cmd.ExecuteNonQuery();
+
+                                // 2. Báo cho các bạn bè đang online biết để họ tải lại khóa
+                                SqlCommand getFriends = new SqlCommand("SELECT FriendId FROM Friends WHERE UserId=@uid", conn);
+                                getFriends.Parameters.AddWithValue("@uid", currentClient.UserId);
+                                using (SqlDataReader r = getFriends.ExecuteReader())
+                                {
+                                    while (r.Read())
+                                    {
+                                        int fid = r.GetInt32(0);
+                                        lock (lockObj)
+                                        {
+                                            if (onlineClients.ContainsKey(fid))
+                                            {
+                                                // Gửi lệnh cảnh báo đổi khóa để Client bên kia xóa khóa cũ
+                                                onlineClients[fid].Writer.WriteLine($"KEY_CHANGED|{currentClient.UserId}");
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         else if (command == "GET_PUBLICKEY")
@@ -453,6 +473,11 @@ namespace ChatServer
                         {
                             HandleBurnMessage(parts, currentClient);
                         }
+                        // LỆNH BẮT ĐẦU ĐẾM NGƯỢC
+                        else if (command == "START_BURN")
+                        {
+                            HandleStartBurn(parts, currentClient);
+                        }
 
                         else if (command == "DELETE_ACCOUNT") { HandleDeleteAccount(parts, currentClient); break; }
                     }
@@ -477,7 +502,6 @@ namespace ChatServer
             {
                 string type = parts[1];
                 int targetId = int.Parse(parts[2]);
-                // Vì RawPayload có thể chứa ký tự '|', ta gộp lại toàn bộ phần sau
                 string contentToBurn = parts.Length > 3 ? string.Join("|", parts.Skip(3)) : "";
 
                 using (SqlConnection conn = new SqlConnection(connectionString))
@@ -485,29 +509,107 @@ namespace ChatServer
                     conn.Open();
                     if (type == "F")
                     {
-                        // Tiêu hủy trong bảng Chat 1-1
                         string sql = "DELETE FROM Messages WHERE ((SenderId=@me AND ReceiverId=@target) OR (SenderId=@target AND ReceiverId=@me)) AND Content=@c";
                         SqlCommand cmd = new SqlCommand(sql, conn);
                         cmd.Parameters.AddWithValue("@me", client.UserId);
                         cmd.Parameters.AddWithValue("@target", targetId);
                         cmd.Parameters.AddWithValue("@c", contentToBurn);
                         cmd.ExecuteNonQuery();
+
+                        // THÊM MỚI: Báo cho người kia xóa tin nhắn khỏi màn hình ngay lập tức
+                        lock (lockObj)
+                        {
+                            if (onlineClients.ContainsKey(targetId))
+                            {
+                                onlineClients[targetId].Writer.WriteLine($"MSG_BURNED|{contentToBurn}");
+                            }
+                        }
                     }
                     else if (type == "G")
                     {
-                        // Tiêu hủy trong bảng Chat Nhóm
                         string sql = "DELETE FROM GroupMessages WHERE GroupId=@gid AND Content=@c";
                         SqlCommand cmd = new SqlCommand(sql, conn);
                         cmd.Parameters.AddWithValue("@gid", targetId);
                         cmd.Parameters.AddWithValue("@c", contentToBurn);
                         cmd.ExecuteNonQuery();
+
+                        // Lấy danh sách thành viên nhóm
+                        List<int> memberIds = new List<int>();
+                        SqlCommand cmdGetMem = new SqlCommand("SELECT UserId FROM GroupMembers WHERE GroupId=@gid", conn);
+                        cmdGetMem.Parameters.AddWithValue("@gid", targetId);
+                        using (SqlDataReader r = cmdGetMem.ExecuteReader())
+                        {
+                            while (r.Read()) memberIds.Add(r.GetInt32(0));
+                        }
+                        lock (lockObj)
+                        {
+                            foreach (int uid in memberIds)
+                            {
+                                if (uid != client.UserId && onlineClients.ContainsKey(uid))
+                                {
+                                    onlineClients[uid].Writer.WriteLine($"MSG_BURNED|{contentToBurn}");
+                                }
+                            }
+                        }
                     }
                 }
-                Console.WriteLine($">> [BẢO MẬT] Đã tiêu hủy thành công 1 tin nhắn tự hủy của {client.Username}!");
+                Console.WriteLine($">> [BẢO MẬT] Đã đồng bộ tiêu hủy tin nhắn của {client.Username} thành công!");
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Lỗi tiêu hủy tin nhắn: " + ex.Message);
+            }
+        }
+
+        // HÀM XỬ LÝ BẮT ĐẦU ĐẾM NGƯỢC ĐỒNG BỘ
+        static void HandleStartBurn(string[] parts, ClientInfo client)
+        {
+            try
+            {
+                string type = parts[1];
+                int targetId = int.Parse(parts[2]);
+                string payload = parts.Length > 3 ? string.Join("|", parts.Skip(3)) : "";
+
+                if (type == "F")
+                {
+                    lock (lockObj)
+                    {
+                        if (onlineClients.ContainsKey(targetId))
+                        {
+                            // Báo cho đối phương biết là mình đã bấm đọc
+                            onlineClients[targetId].Writer.WriteLine($"MSG_BURN_STARTED|{payload}");
+                        }
+                    }
+                }
+                else if (type == "G")
+                {
+                    List<int> memberIds = new List<int>();
+                    using (SqlConnection conn = new SqlConnection(connectionString))
+                    {
+                        conn.Open();
+                        SqlCommand cmdGetMem = new SqlCommand("SELECT UserId FROM GroupMembers WHERE GroupId=@gid", conn);
+                        cmdGetMem.Parameters.AddWithValue("@gid", targetId);
+                        using (SqlDataReader r = cmdGetMem.ExecuteReader())
+                        {
+                            while (r.Read()) memberIds.Add(r.GetInt32(0));
+                        }
+                    }
+
+                    lock (lockObj)
+                    {
+                        foreach (int uid in memberIds)
+                        {
+                            if (uid != client.UserId && onlineClients.ContainsKey(uid))
+                            {
+                                onlineClients[uid].Writer.WriteLine($"MSG_BURN_STARTED|{payload}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi Start Burn: " + ex.Message);
             }
         }
 

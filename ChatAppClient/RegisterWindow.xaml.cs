@@ -37,7 +37,7 @@ namespace ChatAppClient
             try
             {
                 // 1. Kết nối tạm đến Server để gửi đơn đăng ký
-                TcpClient client = new TcpClient("10.77.169.210", 8888); // Đổi IP nếu chạy khác máy
+                TcpClient client = new TcpClient("26.227.8.252", 8888); // Đổi IP nếu chạy khác máy
                 StreamWriter writer = new StreamWriter(client.GetStream()) { AutoFlush = true };
                 StreamReader reader = new StreamReader(client.GetStream());
 

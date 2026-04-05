@@ -97,7 +97,27 @@
                         <TextBlock Text="Online" Foreground="LimeGreen" FontSize="12"/>
                     </StackPanel>
 
-                    <Button x:Name="btnThemeToggle" Grid.Column="2" Content="🌙" Background="Transparent" Foreground="{DynamicResource TextMain}" BorderThickness="0" FontSize="22" Cursor="Hand" Click="btnThemeToggle_Click" ToolTip="Đổi giao diện Sáng/Tối"/>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="btnThemeToggle" Content="🌙" Background="Transparent" Foreground="{DynamicResource TextMain}" BorderThickness="0" FontSize="22" Cursor="Hand" Click="btnThemeToggle_Click" ToolTip="Đổi giao diện Sáng/Tối"/>
+
+                        <Button x:Name="btnThemeSettings" Content="⚙️" Background="Transparent" Foreground="{DynamicResource TextSub}" BorderThickness="0" FontSize="14" Cursor="Hand" Click="btnThemeSettings_Click" ToolTip="Cài đặt giao diện" Margin="2,0,0,0" VerticalAlignment="Top"/>
+
+                        <Popup x:Name="popThemeSettings" PlacementTarget="{Binding ElementName=btnThemeSettings}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" Margin="0,5,0,0">
+                            <Border Background="{DynamicResource BgPanel}" BorderBrush="{DynamicResource BorderColor}" BorderThickness="1" CornerRadius="8" Padding="12">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.15"/>
+                                </Border.Effect>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Đổi giao diện tự động" Foreground="{DynamicResource TextMain}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <CheckBox x:Name="chkAutoTheme" VerticalAlignment="Center" Checked="chkAutoTheme_CheckedChanged" Unchecked="chkAutoTheme_CheckedChanged" Cursor="Hand">
+                                        <CheckBox.LayoutTransform>
+                                            <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                        </CheckBox.LayoutTransform>
+                                    </CheckBox>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </StackPanel>
                 </Grid>
 
                 <StackPanel Grid.Row="1" Margin="0,0,0,15">
@@ -268,84 +288,148 @@
                                 <StackPanel>
                                     <TextBlock Text="{Binding SenderName}" FontSize="11" Foreground="{DynamicResource TextSub}" Margin="5,0,0,3" Visibility="{Binding SenderNameVisibility}"/>
 
-                                    <Border CornerRadius="{Binding BubbleRadius}" Padding="10" Background="{Binding BackgroundColor}" MaxWidth="450">
-                                        <StackPanel>
-                                            <emoji:TextBlock Text="{Binding Content}" Foreground="{Binding TextColor}" TextWrapping="Wrap" FontSize="15" Visibility="{Binding TextVisibility}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
 
-                                            <Grid Visibility="{Binding ImageVisibility}" MaxWidth="300" MaxHeight="300" Margin="0,5">
-                                                <Image Source="{Binding AttachedImage}" Cursor="Hand" MouseLeftButtonDown="ImageMessage_Click" Tag="{Binding AttachedImage}"/>
-                                                <Button Content="⬇" ToolTip="Lưu ảnh về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
-                                                    <Button.Resources>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="CornerRadius" Value="15"/>
-                                                        </Style>
-                                                    </Button.Resources>
+                                        <Button Content="📋" ToolTip="Sao chép văn bản" Cursor="Hand" Click="btnCopyMessage_Click" Tag="{Binding Content}" Background="Transparent" BorderThickness="0" FontSize="14" Foreground="{DynamicResource TextSub}" VerticalAlignment="Center">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Setter Property="Grid.Column" Value="2"/>
+                                                    <Setter Property="Margin" Value="8,0,0,0"/>
+                                                    <Setter Property="Visibility" Value="Hidden"/>
+
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding IsMe}" Value="True">
+                                                            <Setter Property="Grid.Column" Value="0"/>
+                                                            <Setter Property="Margin" Value="0,0,8,0"/>
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding TextVisibility}" Value="Collapsed">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding IsContentRevealed}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+
+                                        <Border Grid.Column="1" CornerRadius="{Binding BubbleRadius}" Padding="10" Background="{Binding BackgroundColor}" MaxWidth="450">
+                                            <Grid>
+                                                <Button Visibility="{Binding HiddenOverlayVisibility}"
+                                                        Background="Transparent" Foreground="{Binding TextColor}" 
+                                                        BorderThickness="0" Cursor="Hand"
+                                                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                                                        Click="btnRevealMessage_Click" Tag="{Binding}">
+                                                    <TextBlock Text="🔒 Tin nhắn tự hủy&#x0a;(Bấm để xem)" TextAlignment="Center"/>
                                                 </Button>
-                                            </Grid>
 
-                                            <Border Visibility="{Binding FileVisibility}" Background="{DynamicResource BgInput}" CornerRadius="8" Padding="10" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="📁" FontSize="24" Margin="0,0,10,0" Foreground="{DynamicResource TextMain}"/>
-                                                    <StackPanel VerticalAlignment="Center">
-                                                        <TextBlock Text="{Binding FileName}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextMain}" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
-                                                        <TextBlock Text="Bấm để tải về máy" FontSize="11" Foreground="#007ACC" TextDecorations="Underline"/>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Border>
+                                                <StackPanel Visibility="{Binding ContentVisibility}">
 
-                                            <Border Visibility="{Binding VideoVisibility}" Background="Black" CornerRadius="8" MaxWidth="320" Height="200" Margin="0,5" Cursor="Hand" MouseEnter="VideoContainer_MouseEnter" MouseLeave="VideoContainer_MouseLeave" MouseLeftButtonDown="VideoContainer_MouseLeftButtonDown">
-                                                <Grid x:Name="MainVideoGrid">
-                                                    <MediaElement x:Name="videoPlayer" Source="{Binding VideoLocalPathUri}" LoadedBehavior="Manual" Stretch="Uniform" MediaEnded="videoPlayer_MediaEnded" MediaOpened="videoPlayer_MediaOpened"/>
+                                                    <Grid Visibility="{Binding TextVisibility}">
+                                                        <emoji:TextBlock Text="{Binding Content}" Foreground="{Binding TextColor}" TextWrapping="Wrap" FontSize="15" Margin="2,0"/>
 
-                                                    <Button x:Name="btnCenterPlay" Content="▶" FontSize="40" Background="#99000000" Foreground="White" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center" Width="60" Height="60" Click="btnCenterPlay_Click" Tag="{Binding}">
-                                                        <Button.Resources>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="CornerRadius" Value="30"/>
-                                                            </Style>
-                                                        </Button.Resources>
-                                                    </Button>
+                                                        <TextBox Text="{Binding Content, Mode=OneWay}" 
+                                                                 Foreground="Transparent" Background="Transparent" BorderThickness="0" 
+                                                                 IsReadOnly="True" TextWrapping="Wrap" FontSize="15" 
+                                                                 Padding="0" Margin="0" 
+                                                                 SelectionBrush="#0084FF" SelectionOpacity="0.4"/>
+                                                    </Grid>
 
-                                                    <Button Content="⬇" ToolTip="Lưu video về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
-                                                        <Button.Resources>
-                                                            <Style TargetType="Border">
-                                                                <Setter Property="CornerRadius" Value="15"/>
-                                                            </Style>
-                                                        </Button.Resources>
-                                                    </Button>
+                                                    <Grid Visibility="{Binding ImageVisibility}" MaxWidth="300" MaxHeight="300" Margin="0,5">
+                                                        <Image Source="{Binding AttachedImage}" Cursor="Hand" MouseLeftButtonDown="ImageMessage_Click" Tag="{Binding AttachedImage}"/>
+                                                        <Button Content="⬇" ToolTip="Lưu ảnh về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
+                                                            <Button.Resources>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="CornerRadius" Value="15"/>
+                                                                </Style>
+                                                            </Button.Resources>
+                                                        </Button>
+                                                    </Grid>
 
-                                                    <Border x:Name="pnlVideoControls" VerticalAlignment="Bottom" Background="#B3000000" Padding="5,8" Visibility="Collapsed" MouseLeftButtonDown="pnlVideoControls_MouseLeftButtonDown">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
+                                                    <Border Visibility="{Binding FileVisibility}" Background="{DynamicResource BgInput}" CornerRadius="8" Padding="10" Cursor="Hand" MouseLeftButtonDown="FileMessage_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="📁" FontSize="24" Margin="0,0,10,0" Foreground="{DynamicResource TextMain}"/>
+                                                            <StackPanel VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding FileName}" FontWeight="Bold" FontSize="14" Foreground="{DynamicResource TextMain}" TextTrimming="CharacterEllipsis" MaxWidth="200"/>
+                                                                <TextBlock Text="Bấm để tải về máy" FontSize="11" Foreground="#007ACC" TextDecorations="Underline"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
 
-                                                            <Button x:Name="btnPlayPause" Content="⏸" Grid.Column="0" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnPlayPause_Click" Tag="{Binding}"/>
-                                                            <Slider x:Name="sliderTimeline" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="1" VerticalAlignment="Center" IsMoveToPointEnabled="True" PreviewMouseDown="sliderTimeline_MouseDown" PreviewMouseUp="sliderTimeline_MouseUp" Cursor="Hand" Tag="{Binding}"/>
+                                                    <Border Visibility="{Binding VideoVisibility}" Background="Black" CornerRadius="8" MaxWidth="320" Height="200" Margin="0,5" Cursor="Hand" MouseEnter="VideoContainer_MouseEnter" MouseLeave="VideoContainer_MouseLeave" MouseLeftButtonDown="VideoContainer_MouseLeftButtonDown">
+                                                        <Grid x:Name="MainVideoGrid">
+                                                            <MediaElement x:Name="videoPlayer" Source="{Binding VideoLocalPathUri}" LoadedBehavior="Manual" Stretch="Uniform" MediaEnded="videoPlayer_MediaEnded" MediaOpened="videoPlayer_MediaOpened"/>
 
-                                                            <Grid Grid.Column="2" MouseEnter="Volume_MouseEnter" MouseLeave="Volume_MouseLeave" Background="Transparent">
-                                                                <Button x:Name="btnVolume" Content="🔊" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnVolume_Click" Tag="{Binding}"/>
-                                                                <Popup x:Name="popVolume" PlacementTarget="{Binding ElementName=btnVolume}" Placement="Top" AllowsTransparency="True" StaysOpen="True" MouseLeave="popVolume_MouseLeave">
-                                                                    <Border Background="#CC000000" Padding="5" CornerRadius="5" Margin="0,0,0,5">
-                                                                        <Slider x:Name="sliderVolume" Orientation="Vertical" Height="70" Minimum="0" Maximum="1" Value="1" IsMoveToPointEnabled="True" ValueChanged="sliderVolume_ValueChanged" Cursor="Hand" Tag="{Binding}"/>
-                                                                    </Border>
-                                                                </Popup>
-                                                            </Grid>
+                                                            <Button x:Name="btnCenterPlay" Content="▶" FontSize="40" Background="#99000000" Foreground="White" BorderThickness="0" HorizontalAlignment="Center" VerticalAlignment="Center" Width="60" Height="60" Click="btnCenterPlay_Click" Tag="{Binding}">
+                                                                <Button.Resources>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="CornerRadius" Value="30"/>
+                                                                    </Style>
+                                                                </Button.Resources>
+                                                            </Button>
+
+                                                            <Button Content="⬇" ToolTip="Lưu video về máy" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="30" Height="30" FontSize="18" FontWeight="Bold" Background="#99000000" Foreground="White" BorderThickness="0" Cursor="Hand" Click="btnSaveMedia_Click">
+                                                                <Button.Resources>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="CornerRadius" Value="15"/>
+                                                                    </Style>
+                                                                </Button.Resources>
+                                                            </Button>
+
+                                                            <Border x:Name="pnlVideoControls" VerticalAlignment="Bottom" Background="#B3000000" Padding="5,8" Visibility="Collapsed" MouseLeftButtonDown="pnlVideoControls_MouseLeftButtonDown">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+
+                                                                    <Button x:Name="btnPlayPause" Content="⏸" Grid.Column="0" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnPlayPause_Click" Tag="{Binding}"/>
+                                                                    <Slider x:Name="sliderTimeline" Grid.Column="1" Margin="10,0" Minimum="0" Maximum="1" VerticalAlignment="Center" IsMoveToPointEnabled="True" PreviewMouseDown="sliderTimeline_MouseDown" PreviewMouseUp="sliderTimeline_MouseUp" Cursor="Hand" Tag="{Binding}"/>
+
+                                                                    <Grid Grid.Column="2" MouseEnter="Volume_MouseEnter" MouseLeave="Volume_MouseLeave" Background="Transparent">
+                                                                        <Button x:Name="btnVolume" Content="🔊" Background="Transparent" Foreground="White" BorderThickness="0" Width="30" FontSize="16" Cursor="Hand" Click="btnVolume_Click" Tag="{Binding}"/>
+                                                                        <Popup x:Name="popVolume" PlacementTarget="{Binding ElementName=btnVolume}" Placement="Top" AllowsTransparency="True" StaysOpen="True" MouseLeave="popVolume_MouseLeave">
+                                                                            <Border Background="#CC000000" Padding="5" CornerRadius="5" Margin="0,0,0,5">
+                                                                                <Slider x:Name="sliderVolume" Orientation="Vertical" Height="70" Minimum="0" Maximum="1" Value="1" IsMoveToPointEnabled="True" ValueChanged="sliderVolume_ValueChanged" Cursor="Hand" Tag="{Binding}"/>
+                                                                            </Border>
+                                                                        </Popup>
+                                                                    </Grid>
+                                                                </Grid>
+                                                            </Border>
+
+                                                            <TextBlock x:Name="txtVideoStatus" Text="{Binding VideoStatusText}" Foreground="White" Background="#88000000" Padding="10,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" Visibility="{Binding VideoStatusVisibility}"/>
                                                         </Grid>
                                                     </Border>
 
-                                                    <TextBlock x:Name="txtVideoStatus" Text="{Binding VideoStatusText}" Foreground="White" Background="#88000000" Padding="10,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,10" Visibility="{Binding VideoStatusVisibility}"/>
-                                                </Grid>
-                                            </Border>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0" Visibility="{Binding TimerVisibility, FallbackValue=Collapsed}">
+                                                        <TextBlock Text="⏳ " FontSize="10" Foreground="#E53935"/>
+                                                        <TextBlock Text="{Binding TimerText}" FontSize="11" Foreground="#E53935" FontWeight="Bold"/>
+                                                    </StackPanel>
 
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0" Visibility="{Binding TimerVisibility, FallbackValue=Collapsed}">
-                                                <TextBlock Text="⏳ " FontSize="10" Foreground="#E53935"/>
-                                                <TextBlock Text="{Binding TimerText}" FontSize="11" Foreground="#E53935" FontWeight="Bold"/>
-                                            </StackPanel>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
 
-                                        </StackPanel>
-                                    </Border>
                                 </StackPanel>
                             </StackPanel>
                         </Grid>
